@@ -53,12 +53,12 @@ function TicketModal({ venta, productos, onClose }) {
     let y = 10;
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('system', 'bold');
     doc.text(settings.name || 'CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
     y += 5;
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('system', 'normal');
     if (settings.address) { doc.text(settings.address, CENTER_X, y, { align: 'center' }); y += 4; }
     if (settings.phone) { doc.text(`Tel: ${settings.phone}`, CENTER_X, y, { align: 'center' }); y += 4; }
 
@@ -108,7 +108,7 @@ function TicketModal({ venta, productos, onClose }) {
     const taxAmount = total - subtotal;
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('system', 'normal');
     doc.text(`Subtotal: $${subtotal.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
     y += 4;
 
@@ -118,12 +118,12 @@ function TicketModal({ venta, productos, onClose }) {
     }
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('system', 'bold');
     doc.text(`TOTAL: $${total.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
 
     y += 5;
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
+    doc.setFont('system', 'italic');
 
     const footerText = settings.footerMsg || '¡Gracias por su compra!';
     const maxFooterWidth = PAPER_WIDTH - (MARGIN * 2);
