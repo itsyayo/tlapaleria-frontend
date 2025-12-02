@@ -44,7 +44,7 @@ function TicketModal({ venta, productos, onClose }) {
       items: (productos || []).map(p => ({ quantity: p.cantidad, name: p.descripcion, price: Number(p.precio_unitario) || 0 })),
       total: Number(venta.total) || 0
     };
-
+    y = 0;
     doc.setFontSize(12);
     doc.setFont('arial', 'bold');
     doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
@@ -57,7 +57,7 @@ function TicketModal({ venta, productos, onClose }) {
     
     doc.text(address, CENTER_X, y, { align: 'center' });
     y += 2;
-    
+
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
     y += 5;
