@@ -39,17 +39,20 @@ function TicketModal({ venta, productos, onClose }) {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PAPER_WIDTH, PAPER_HEIGHT] });
 
     const data = {
+
       date: new Date(venta.fecha).toLocaleString(),
       saleId: String(venta.id || ''),
       items: (productos || []).map(p => ({ quantity: p.cantidad, name: p.descripcion, price: Number(p.precio_unitario) || 0 })),
       total: Number(venta.total) || 0
     };
-    y = 2;
+
+    let y = 1;
+
     doc.setFontSize(12);
     doc.setFont('arial', 'bold');
     doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
-    y += 5;
+    y += 3;
     doc.setFontSize(10);
     doc.setFont('arial', 'normal');
 
@@ -57,7 +60,6 @@ function TicketModal({ venta, productos, onClose }) {
     
     doc.text(address, CENTER_X, y, { align: 'center' });
     y += 2;
-
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
     y += 5;
