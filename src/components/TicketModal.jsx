@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function TicketModal({ venta, productos, onClose }) {
   const totalEnLetras = (num) => {
@@ -27,160 +28,114 @@ function TicketModal({ venta, productos, onClose }) {
     return num.toString();
   };
 
-const generarPDF = () => {
-  // Tamaño típico para 58 mm
-  const WIDTH = 58;   // mm
-  const HEIGHT = 200; // mm por página
-  const ML = 2;       // margen izq/der
-  const MT = 2;       // margen superior
-  const W = WIDTH - ML * 2;
-  const RIGHT = ML + W;
+  const generarPDF = () => {
+    // Adapted ticket generator using jsPDF + autoTable
+    const PAPER_WIDTH = 58;
+    const PAPER_HEIGHT = 200;
+    const MARGIN = 4;
+    const CENTER_X = PAPER_WIDTH / 2;
+    const RIGHT_X = PAPER_WIDTH - MARGIN;
 
-  const doc = new jsPDF({ unit: 'mm', format: [WIDTH, HEIGHT] });
-  let y = MT;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PAPER_WIDTH, PAPER_HEIGHT] });
 
-  // Altura de línea consistente (apretadito sin cortar)
-  const LH = 3.4;
+    // Try to read settings from localStorage (fallbacks provided)
+    let settings = {};
+    try { settings = JSON.parse(localStorage.getItem('settings') || '{}'); } catch (e) { settings = {}; }
 
-  const money = (n) =>
-    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 })
-      .format(Number(n || 0));
+    const data = {
+      settings,
+      date: new Date(venta.fecha).toLocaleString(),
+      saleId: String(venta.id || ''),
+      items: (productos || []).map(p => ({ quantity: p.cantidad, name: p.descripcion, price: Number(p.precio_unitario) || 0 })),
+      total: Number(venta.total) || 0
+    };
 
-  const bottom = HEIGHT - MT;
+    let y = 10;
 
-  const newPage = (cont = true) => {
-    doc.addPage([WIDTH, HEIGHT]);
-    y = MT;
-    // Si quieres encabezado en páginas siguientes, descomenta:
-    // textC(cont ? 'CLIMAS GAMA (cont.)' : 'CLIMAS GAMA', 10, 'bold');
-    // hr(2);
-  };
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings.name || 'CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
-  const needBlock = (h) => { if (y + h > bottom) newPage(true); };
+    y += 5;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    if (settings.address) { doc.text(settings.address, CENTER_X, y, { align: 'center' }); y += 4; }
+    if (settings.phone) { doc.text(`Tel: ${settings.phone}`, CENTER_X, y, { align: 'center' }); y += 4; }
 
-  const hr = (gap = 2) => {
-    doc.setLineWidth(0.2);
-    doc.line(ML, y, RIGHT, y);
-    y += gap;
-  };
+    y += 2;
+    doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
-  const textC = (t, size = 8, style = 'normal') => {
-    doc.setFont('helvetica', style);
-    doc.setFontSize(size);
-    const lines = Array.isArray(t) ? t : doc.splitTextToSize(String(t), W);
-    needBlock(lines.length * LH);
-    doc.text(lines, ML + W / 2, y, { align: 'center' });
-    y += lines.length * LH;
-  };
+    y += 5;
+    doc.text(`Fecha: ${data.date}`, MARGIN, y);
+    y += 4;
+    doc.text(`ID: ${String(data.saleId).slice(0, 12)}${String(data.saleId).length > 12 ? '...' : ''}`, MARGIN, y);
 
-  const textL = (t, size = 8, style = 'normal', x = ML) => {
-    doc.setFont('helvetica', style);
-    doc.setFontSize(size);
-    const lines = Array.isArray(t) ? t : doc.splitTextToSize(String(t), W);
-    needBlock(lines.length * LH);
-    doc.text(lines, x, y);
-    y += lines.length * LH;
-  };
+    y += 3;
 
-  const textR = (t, size = 8, style = 'normal', x = RIGHT - 0.5) => {
-    doc.setFont('helvetica', style);
-    doc.setFontSize(size);
-    needBlock(LH);
-    doc.text(String(t), x, y, { align: 'right' });
-  };
-
-  // ===== Encabezado (1a página) =====
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-  textC('CLIMAS GAMA', 12, 'bold');
-
-  textC(
-    ['Prol. Av. Juárez #435, Tinajas',
-     'Cuajimalpa de Morelos',
-     '05360 Ciudad de México, CDMX'],
-    8, 'normal'
-  );
-  hr(2);
-  y += 1;
-
-  doc.setFontSize(8);
-  textL(`Fecha: ${new Date(venta.fecha).toLocaleDateString()}`, 8);
-  textR(`V_ID: ${venta.id}`, 8);
-  y += 1;
-
-  textL('Cliente: Público en General', 8);
-  textL(`Vendedor: ${venta.nombre_vendedor}`, 8);
-  hr(2);
-  y += 1;
-
-  // ===== Productos =====
-  const xQty   = ML;          // Cantidad (izq)
-  const xUnitR = RIGHT - 22;  // Etiqueta P.Unit (derecha)
-  const xUnitV = RIGHT - 10;  // Valor P.Unit (derecha)
-  const xSubR  = RIGHT - 11;  // Etiqueta Subt (derecha)
-  const xSubV  = RIGHT - 0.5; // Valor Subt (derecha absoluta)
-
-  productos.forEach((p, idx) => {
-    const descLines = doc.splitTextToSize(String(p.descripcion || ''), W);
-    const descH = descLines.length * LH;
-    const metaH = LH;                     // línea "Cant/P.Unit/Subt"
-    const sepH  = idx !== productos.length - 1 ? 1.2 : 0; // separador entre ítems
-    const blockH = descH + metaH + sepH;
-
-    // Paginado por bloque (evita cortes y huecos)
-    needBlock(blockH);
-
-    // Descripción
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-    descLines.forEach((ln, i) => {
-      doc.text(i ? ('  ' + ln) : ln, ML, y);
-      y += LH;
+    autoTable(doc, {
+      startY: y,
+      head: [['Cant', 'Prod', 'Total']],
+      body: data.items.map(item => [
+        item.quantity,
+        String(item.name),
+        `$${(item.price * item.quantity).toFixed(2)}`
+      ]),
+      theme: 'plain',
+      styles: {
+        fontSize: 7,
+        cellPadding: 1,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+      headStyles: {
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 13, halign: 'right' }
+      },
+      margin: { left: MARGIN, right: MARGIN }
     });
 
-    // Línea de totales (monoespaciada)
-    doc.setFont('courier', 'normal'); doc.setFontSize(7.5);
-    doc.text(`Cant:${p.cantidad}`, xQty, y);
-    doc.text('P.Unit:', xUnitR - 10, y, { align: 'right' });
-    doc.text(money(p.precio_unitario), xUnitV - 10, y, { align: 'right' });
-    doc.text('Subt:', xSubR, y, { align: 'right' });
-    doc.text(money(Number(p.cantidad) * Number(p.precio_unitario)), xSubV, y, { align: 'right' });
-    y += LH;
+    // lastAutoTable may not exist if there are no items
+    y = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 5 : (y + 20);
 
-    // Separador
-    if (sepH) {
-      doc.setDrawColor(200); doc.setLineWidth(0.2);
-      doc.line(ML, y, RIGHT, y);
-      doc.setDrawColor(0);
-      y += sepH + 1.3;
+    const taxRate = Number(settings.taxRate) || 0;
+    const total = Number(data.total) || 0;
+    const subtotal = taxRate > 0 ? total / (1 + (taxRate / 100)) : total;
+    const taxAmount = total - subtotal;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Subtotal: $${subtotal.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
+    y += 4;
+
+    if (taxRate > 0) {
+      doc.text(`IVA (${taxRate}%): $${taxAmount.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
+      y += 4;
     }
-  });
 
-  
-  // ===== Totales =====
-  hr(2);
-  y += 2;
-  needBlock(2 * LH);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-  doc.text('TOTAL:', ML + 15, y);
-  textR(money(venta.total), 8, 'bold', RIGHT- 5);
-  y += LH + 1;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TOTAL: $${total.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
 
-  const entero   = Math.floor(venta.total || 0);
-  const centavos = Math.round((Number(venta.total || 0) - entero) * 100);
-  const enLetras = `${totalEnLetras(entero).toUpperCase()} PESOS ${String(centavos).padStart(2, '0')}/100 M.N.`;
-  textC(enLetras, 7.2, 'normal');
+    y += 5;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
 
-  hr(2);
-  y += 1;
-  textC('NO SE ACEPTAN CAMBIOS NI DEVOLUCIONES', 6.2, 'bold');
-  textC('¡Gracias por su compra!', 8, 'bold');
-  textC(['Si requiere factura, enviar ticket', 'y CSF al WhatsApp:', '5569700587'], 6.2);
+    const footerText = settings.footerMsg || '¡Gracias por su compra!';
+    const maxFooterWidth = PAPER_WIDTH - (MARGIN * 2);
+    const footerLines = doc.splitTextToSize(footerText, maxFooterWidth);
+    doc.text(footerLines, CENTER_X, y + 5, { align: 'center' });
 
-  doc.save(`venta_${venta.id}.pdf`);
-};
+    doc.save(`ticket_${String(data.saleId).slice(0, 6)}.pdf`);
+  };
 
 
 
-    return (
+  return (
     // Backdrop con scroll si el contenido crece
     <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto">
       {/* Contenedor del modal: columna, con header y footer 'sticky' */}
