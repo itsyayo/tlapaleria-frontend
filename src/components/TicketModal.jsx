@@ -38,30 +38,26 @@ function TicketModal({ venta, productos, onClose }) {
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PAPER_WIDTH, PAPER_HEIGHT] });
 
-    // Try to read settings from localStorage (fallbacks provided)
-    let settings = {};
-    try { settings = JSON.parse(localStorage.getItem('settings') || '{}'); } catch (e) { settings = {}; }
-
     const data = {
-      settings,
       date: new Date(venta.fecha).toLocaleString(),
       saleId: String(venta.id || ''),
       items: (productos || []).map(p => ({ quantity: p.cantidad, name: p.descripcion, price: Number(p.precio_unitario) || 0 })),
       total: Number(venta.total) || 0
     };
 
-    let y = 10;
+    let y = 3;
 
     doc.setFontSize(12);
     doc.setFont('arial', 'bold');
-    doc.text(settings.name || 'CLIMAS GAMA', CENTER_X, y, { align: 'center' });
+    doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
     y += 5;
     doc.setFontSize(10);
     doc.setFont('arial', 'normal');
-    if (settings.address) { doc.text(settings.address, CENTER_X, y, { align: 'center' }); y += 4; }
-    if (settings.phone) { doc.text(`Tel: ${settings.phone}`, CENTER_X, y, { align: 'center' }); y += 4; }
 
+    const address = 'Prol. Juarez #435 2, Col. Contadero, Cuajimalpa de Morelos, C.P. 05500, CDMX';
+    
+    doc.text(address, CENTER_X, y, { align: 'center' });
     y += 2;
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
@@ -116,6 +112,13 @@ function TicketModal({ venta, productos, onClose }) {
     const maxFooterWidth = PAPER_WIDTH - (MARGIN * 2);
     const footerLines = doc.splitTextToSize(footerText, maxFooterWidth);
     doc.text(footerLines, CENTER_X, y + 5, { align: 'center' });
+
+    y += 3;
+    const facturaInfo = 'Solicita tu factura al siguiente numero: ';
+    const facturaNum = '5569700587';
+    
+    doc.text(facturaInfo, CENTER_X, y + 10, { align: 'center' });
+    doc.text(facturaNum, CENTER_X, y + 15, { align: 'center' });  
 
     doc.save(`ticket_${String(data.saleId).slice(0, 6)}.pdf`);
   };
