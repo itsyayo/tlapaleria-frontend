@@ -53,10 +53,10 @@ function TicketModal({ venta, productos, onClose }) {
     doc.setFontSize(10);
     doc.setFont('arial', 'normal');
 
-    const address = 'Prol. Juarez #435 2, Contadero';
+    const address = 'Prol. Juarez #435 2, Contadero, Cuajimalpa de Morelos, C.P. 05500, CDMX';
     
     doc.text(address, CENTER_X, y, { align: 'center' });
-    y += 4;
+    y += 2;
     
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
