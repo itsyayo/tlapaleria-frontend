@@ -53,13 +53,6 @@ function TicketModal({ venta, productos, onClose }) {
     doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
     y += 3;
-    doc.setFontSize(10);
-    doc.setFont('arial', 'normal');
-
-    const address = 'Prol. Juarez #435 2, Contadero, Cuajimalpa de Morelos, C.P. 05500, CDMX';
-    const addressSplited = doc.splitTextToSize(address, PAPER_WIDTH - (MARGIN * 2));
-    doc.text(addressSplited, CENTER_X, y, { align: 'center' });
-    y += 2;
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
     y += 5;
