@@ -52,13 +52,13 @@ function TicketModal({ venta, productos, onClose }) {
 
     let y = 10;
 
-    doc.setFontSize(10);
-    doc.setFont('system', 'bold');
+    doc.setFontSize(12);
+    doc.setFont('arial', 'bold');
     doc.text(settings.name || 'CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
     y += 5;
-    doc.setFontSize(8);
-    doc.setFont('system', 'normal');
+    doc.setFontSize(10);
+    doc.setFont('arial', 'normal');
     if (settings.address) { doc.text(settings.address, CENTER_X, y, { align: 'center' }); y += 4; }
     if (settings.phone) { doc.text(`Tel: ${settings.phone}`, CENTER_X, y, { align: 'center' }); y += 4; }
 
@@ -82,7 +82,7 @@ function TicketModal({ venta, productos, onClose }) {
       ]),
       theme: 'plain',
       styles: {
-        fontSize: 7,
+        fontSize: 8,
         cellPadding: 1,
         overflow: 'linebreak',
         valign: 'middle'
@@ -102,30 +102,17 @@ function TicketModal({ venta, productos, onClose }) {
     // lastAutoTable may not exist if there are no items
     y = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 5 : (y + 20);
 
-    const taxRate = Number(settings.taxRate) || 0;
     const total = Number(data.total) || 0;
-    const subtotal = taxRate > 0 ? total / (1 + (taxRate / 100)) : total;
-    const taxAmount = total - subtotal;
-
-    doc.setFontSize(9);
-    doc.setFont('system', 'normal');
-    doc.text(`Subtotal: $${subtotal.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
-    y += 4;
-
-    if (taxRate > 0) {
-      doc.text(`IVA (${taxRate}%): $${taxAmount.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
-      y += 4;
-    }
 
     doc.setFontSize(10);
-    doc.setFont('system', 'bold');
+    doc.setFont('arial', 'bold');
     doc.text(`TOTAL: $${total.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
 
     y += 5;
-    doc.setFontSize(8);
-    doc.setFont('system', 'italic');
+    doc.setFontSize(10);
+    doc.setFont('arial', 'normal');
 
-    const footerText = settings.footerMsg || '¡Gracias por su compra!';
+    const footerText = '¡Gracias por su compra!';
     const maxFooterWidth = PAPER_WIDTH - (MARGIN * 2);
     const footerLines = doc.splitTextToSize(footerText, maxFooterWidth);
     doc.text(footerLines, CENTER_X, y + 5, { align: 'center' });
