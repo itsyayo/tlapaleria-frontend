@@ -52,10 +52,12 @@ function TicketModal({ venta, productos, onClose }) {
     doc.setFont('arial', 'bold');
     doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
 
-    y += 3;
+    y += 2;
     doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
 
-    y += 5;
+    y += 2;
+    doc.setFontSize(10);
+    doc.setFont('arial', 'normal');
     doc.text(`Fecha: ${data.date}`, MARGIN, y);
     y += 4;
     doc.text(`ID: ${String(data.saleId).slice(0, 12)}${String(data.saleId).length > 12 ? '...' : ''}`, MARGIN, y);
