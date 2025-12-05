@@ -1,315 +1,357 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import API from '../services/api';
+import API from '../services/api'; // Instancia optimizada
 
 function AgregarProducto() {
   const navigate = useNavigate();
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+
+  const [loadingInit, setLoadingInit] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [proveedores, setProveedores] = useState([]);
+  const [categorias, setCategorias] = useState([]);
 
   const [form, setForm] = useState({
     codigo: '',
+    codigo_barras: '',
     descripcion: '',
     ubicacion: '',
-    stock_maximo: '',
-    cantidad_stock: '',
+    categoria_id: '',
     proveedor_id: '',
+    stock_maximo: '',
+    stock_minimo: '',
+    cantidad_stock: '',
     precio_compra: '',
     precio_venta: '',
     clave_sat: '',
-    stock_minimo: '',
-    categoria_id: '',
-    codigo_barras: '',
   });
   const [imagen, setImagen] = useState(null);
-  const [proveedores, setProveedores] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-
-  const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
-  const loadedRef = useRef(false);
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
-    // Guardas de rol
-    if (!usuario) { navigate('/login'); return; }
-    if (usuario.rol !== 'admin') { navigate('/denegado'); return; }
+    if (usuario.rol !== 'admin') {
+      toast.error('Acceso denegado');
+      navigate('/denegado');
+      return;
+    }
 
-    // Evitar doble carga en StrictMode
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-
-    const ctrl = new AbortController();
-    (async () => {
+    const cargarDependencias = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const config = { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal };
-
-        const [resProv, resProd, resCat] = await Promise.all([
-          API.get('/proveedores', config),
-          API.get('/productos', config),
-          API.get('/categorias', config),
+        const [resProv, resCat] = await Promise.all([
+          API.get('/proveedores'),
+          API.get('/categorias')
         ]);
-
         setProveedores(resProv.data || []);
-        setProductos(resProd.data || []);
         setCategorias(resCat.data || []);
       } catch (err) {
-        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-          console.error(err);
-          toast.error('Error al cargar datos iniciales');
-        }
+        console.error('Error cargando dependencias:', err);
+      } finally {
+        setLoadingInit(false);
       }
-    })();
+    };
 
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    cargarDependencias();
+  }, [usuario.rol, navigate]);
 
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
-    setImagen(e.target.files?.[0] || null);
+    const file = e.target.files?.[0];
+    if (file) {
+      setImagen(file);
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setImagen(null);
+      setPreview(null);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
+
+    if (!form.codigo.trim()) return toast.warning('El código es obligatorio');
+    if (!form.descripcion.trim()) return toast.warning('La descripción es obligatoria');
+    if (!form.categoria_id) return toast.warning('Selecciona una categoría');
+    if (!form.proveedor_id) return toast.warning('Selecciona un proveedor');
+    
+    if (Number(form.cantidad_stock) < 0) return toast.warning('El stock no puede ser negativo');
+    if (Number(form.precio_venta) < 0) return toast.warning('El precio de venta no puede ser negativo');
+
     setSubmitting(true);
 
-    const token = localStorage.getItem('token');
-
-    // Normalizadores
-    const toInt = (v, d = 0) => {
-      const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : d;
-    };
-    const toNum = (v, d = 0) => {
-      const n = Number(v); return Number.isFinite(n) ? n : d;
-    };
-
-    const payload = {
-      codigo: String(form.codigo || '').trim(),
-      descripcion: String(form.descripcion || '').trim(),
-      ubicacion: String(form.ubicacion || '').trim(),
-      stock_maximo: toInt(form.stock_maximo, 0),
-      cantidad_stock: toInt(form.cantidad_stock, 0),
-      proveedor_id: toInt(form.proveedor_id, 0),
-      precio_compra: toNum(form.precio_compra, 0),
-      precio_venta: toNum(form.precio_venta, 0),
-      clave_sat: String(form.clave_sat || '').trim(),
-      stock_minimo: toInt(form.stock_minimo, 0),
-      categoria_id: toInt(form.categoria_id, 0)   // <-- NUEVO
-    };
-
-    // Validaciones mínimas
-    if (!payload.codigo) { toast.error('El código es obligatorio'); setSubmitting(false); return; }
-    if (!payload.descripcion) { toast.error('La descripción es obligatoria'); setSubmitting(false); return; }
-    if (!payload.proveedor_id) { toast.error('Selecciona proveedor'); setSubmitting(false); return; }
-    if (!payload.categoria_id) { toast.error('Selecciona categoría'); setSubmitting(false); return; }
-    if (payload.stock_minimo < 0) { toast.error('El stock mínimo no puede ser negativo'); setSubmitting(false); return; }
-    if (payload.cantidad_stock < 0) { toast.error('La cantidad en stock no puede ser negativa'); setSubmitting(false); return; }
-    if (payload.precio_compra < 0 || payload.precio_venta < 0) {
-      toast.error('Precios no pueden ser negativos'); setSubmitting(false); return;
-    }
-
-    // Duplicado local (backend también valida)
-    const existe = productos.some(p => String(p.codigo).trim() === payload.codigo);
-    if (existe) { toast.error(`El código "${payload.codigo}" ya está registrado`); setSubmitting(false); return; }
-
-    // FormData para multipart (imagen opcional)
-    const formData = new FormData();
-    Object.entries(payload).forEach(([k, v]) => formData.append(k, String(v)));
-    if (imagen) formData.append('imagen', imagen);
-
     try {
-      await API.post('/productos', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value);
+        }
       });
+
+      if (imagen) {
+        formData.append('imagen', imagen);
+      }
+      await API.post('/productos', formData);
+
       toast.success('Producto agregado correctamente');
       navigate('/productos');
     } catch (err) {
-      const msg = err?.response?.data?.error || err.message || 'Error al agregar producto';
       console.error(err);
-      toast.error(msg);
+      // El interceptor maneja errores, pero si hay algo específico del form:
+      if (err.response?.status === 409) {
+        toast.error('Ya existe un producto con ese código');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loadingInit) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-lg mx-auto mt-10 bg-white border rounded-xl shadow p-6">
-      <h2 className="text-2xl font-bold mb-6 text-center">➕ Agregar producto</h2>
-
-      <form onSubmit={handleSubmit} className="grid gap-5">
-        {/* Texto */}
+    <div className="max-w-4xl mx-auto mt-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
-          <input
-            type="text"
-            name="codigo"
-            value={form.codigo}
-            onChange={handleChange}
-            required
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+          <h1 className="text-2xl font-bold text-slate-800">➕ Nuevo Producto</h1>
+          <p className="text-sm text-slate-500">Registra un nuevo artículo en el inventario</p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Código de barras</label>
-          <input
-            type="text"
-            name="codigo_barras"
-            value={form.codigo_barras}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
-          <input
-            type="text"
-            name="descripcion"
-            value={form.descripcion}
-            onChange={handleChange}
-            required
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Ubicación</label>
-          <input
-            type="text"
-            name="ubicacion"
-            value={form.ubicacion}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        {/* Categoría */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
-          <select
-            name="categoria_id"
-            value={form.categoria_id}
-            onChange={handleChange}
-            required
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">Seleccione una categoría</option>
-            {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
-        </div>
-
-        {/* Números */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Stock máximo</label>
-          <input
-            type="number" min="0" step="1"
-            name="stock_maximo"
-            value={form.stock_maximo}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Cantidad en stock</label>
-          <input
-            type="number" min="0" step="1"
-            name="cantidad_stock"
-            value={form.cantidad_stock}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Stock mínimo</label>
-          <input
-            type="number" min="0" step="1"
-            name="stock_minimo"
-            value={form.stock_minimo}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Precio de compra</label>
-          <input
-            type="number" min="0" step="0.01"
-            name="precio_compra"
-            value={form.precio_compra}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Precio de venta</label>
-          <input
-            type="number" min="0" step="0.01"
-            name="precio_venta"
-            value={form.precio_venta}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        {/* Clave SAT */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Clave SAT</label>
-          <input
-            type="text"
-            name="clave_sat"
-            value={form.clave_sat}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        {/* Proveedor */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Proveedor</label>
-          <select
-            name="proveedor_id"
-            value={form.proveedor_id}
-            onChange={handleChange}
-            required
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">Seleccione un proveedor</option>
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Imagen */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Imagen</label>
-          <input
-            type="file"
-            name="imagen"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-
-        {/* Botón */}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-xl transition disabled:opacity-50"
+        <Link 
+          to="/productos"
+          className="text-slate-500 hover:text-slate-700 font-medium text-sm transition"
         >
-          {submitting ? 'Guardando…' : 'Guardar producto'}
-        </button>
+          Cancelar y volver
+        </Link>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* Sección 1: Información Principal */}
+        <div className="bg-white border rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">📦 Información General</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            
+            {/* Código */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Código Interno <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                name="codigo"
+                value={form.codigo}
+                onChange={handleChange}
+                placeholder="Ej. PROD-001"
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+              />
+            </div>
+
+            {/* Código de Barras */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Código de Barras</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="codigo_barras"
+                  value={form.codigo_barras}
+                  onChange={handleChange}
+                  placeholder="Escanea aquí..."
+                  className="w-full rounded-lg border-slate-300 px-3 py-2 pl-9 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
+              </div>
+            </div>
+
+            {/* Descripción (Full width) */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Descripción / Nombre <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                name="descripcion"
+                value={form.descripcion}
+                onChange={handleChange}
+                placeholder="Ej. Martillo de uña 16oz"
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+              />
+            </div>
+
+            {/* Categoría */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Categoría <span className="text-red-500">*</span></label>
+              <select
+                name="categoria_id"
+                value={form.categoria_id}
+                onChange={handleChange}
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                required
+              >
+                <option value="">-- Seleccionar --</option>
+                {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </div>
+
+            {/* Proveedor */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Proveedor <span className="text-red-500">*</span></label>
+              <select
+                name="proveedor_id"
+                value={form.proveedor_id}
+                onChange={handleChange}
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                required
+              >
+                <option value="">-- Seleccionar --</option>
+                {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </div>
+
+            {/* Clave SAT */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Clave SAT</label>
+              <input
+                type="text"
+                name="clave_sat"
+                value={form.clave_sat}
+                onChange={handleChange}
+                placeholder="Ej. 84111506"
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Ubicación */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Ubicación / Pasillo</label>
+              <input
+                type="text"
+                name="ubicacion"
+                value={form.ubicacion}
+                onChange={handleChange}
+                placeholder="Ej. Pasillo 3, Estante B"
+                className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Sección 2: Inventario y Precios */}
+        <div className="bg-white border rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">💰 Inventario y Costos</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <label className="block text-xs font-bold text-blue-800 mb-1 uppercase">Precio Venta</label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-blue-600 font-bold">$</span>
+                <input
+                  type="number" step="0.01" min="0"
+                  name="precio_venta"
+                  value={form.precio_venta}
+                  onChange={handleChange}
+                  className="w-full rounded-md border-blue-200 pl-7 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg text-slate-700"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Precio Compra</label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-slate-500">$</span>
+                <input
+                  type="number" step="0.01" min="0"
+                  name="precio_compra"
+                  value={form.precio_compra}
+                  onChange={handleChange}
+                  className="w-full rounded-md border-slate-300 pl-7 py-1.5 focus:ring-2 focus:ring-slate-400 outline-none text-slate-600"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <label className="block text-xs font-bold text-amber-800 mb-1 uppercase">Stock Inicial</label>
+              <input
+                type="number" step="1" min="0"
+                name="cantidad_stock"
+                value={form.cantidad_stock}
+                onChange={handleChange}
+                className="w-full rounded-md border-amber-200 px-3 py-1.5 focus:ring-2 focus:ring-amber-500 outline-none font-bold text-lg text-slate-700"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Límites de Stock */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Stock Mínimo</label>
+              <input type="number" name="stock_minimo" value={form.stock_minimo} onChange={handleChange} className="w-full rounded-lg border-slate-300 px-3 py-2 outline-none" placeholder="0" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Stock Máximo</label>
+              <input type="number" name="stock_maximo" value={form.stock_maximo} onChange={handleChange} className="w-full rounded-lg border-slate-300 px-3 py-2 outline-none" placeholder="0" />
+            </div>
+
+          </div>
+        </div>
+
+        {/* Sección 3: Imagen */}
+        <div className="bg-white border rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">🖼️ Imagen del Producto</h3>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Previsualización */}
+            <div className="w-32 h-32 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
+              {preview ? (
+                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-4xl text-slate-300">📷</span>
+              )}
+            </div>
+            
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Subir fotografía</label>
+              <input
+                type="file"
+                name="imagen"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100 transition"
+              />
+              <p className="text-xs text-slate-400 mt-2">Formatos permitidos: JPG, PNG, WEBP (Máx 5MB)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Botón Guardar */}
+        <div className="flex justify-end gap-4 pt-4">
+          <Link
+            to="/productos"
+            className="px-6 py-3 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition"
+          >
+            Cancelar
+          </Link>
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`px-8 py-3 rounded-xl text-white font-bold shadow-lg transition flex items-center gap-2
+              ${submitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5'}`}
+          >
+            {submitting ? 'Guardando...' : '💾 Guardar Producto'}
+          </button>
+        </div>
       </form>
     </div>
   );

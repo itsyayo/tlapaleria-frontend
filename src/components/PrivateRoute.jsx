@@ -1,21 +1,21 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useUsuario } from '../hooks/useUsuario';
 
-function PrivateRoute({ children, roleRequired }) {
-  const token = localStorage.getItem('token');
-  const usuario = JSON.parse(localStorage.getItem('usuario'));
+function PrivateRoute({ children, allowedRoles }) {
+  const usuario = useUsuario();
   const location = useLocation();
 
-  // Si no hay token → login
-  if (!token) {
+  if (!usuario) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Si requiere rol específico → acceso denegado
-  if (roleRequired && usuario?.rol !== roleRequired) {
-    return <Navigate to="/denegado" replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!allowedRoles.includes(usuario.rol)) {
+      return <Navigate to="/denegado" replace />;
+    }
   }
 
-  return children; // Autorizado
+  return children;
 }
 
 export default PrivateRoute;

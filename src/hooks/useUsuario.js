@@ -6,9 +6,19 @@ export function useUsuario() {
 
   try {
     const decoded = jwtDecode(token);
-    return decoded;
+    
+    const currentTime = Date.now() / 1000;
+    if (decoded.exp < currentTime) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      return null;
+    }
+
+    const storedUser = JSON.parse(localStorage.getItem('usuario') || '{}');
+    
+    return { ...decoded, nombre: storedUser.nombre || decoded.id };
   } catch (err) {
-    console.error('Token inválido');
+    console.error('Token inválido', err);
     return null;
   }
 }

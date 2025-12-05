@@ -1,185 +1,213 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useEffect } from 'react';
 
 function TicketModal({ venta, productos, onClose }) {
-  const totalEnLetras = (num) => {
-    const unidades = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const decenas = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'];
-    const decenasCompuestas = ['veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
-    const centenas = ['cien', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
-    if (num === 0) return 'cero';
-    if (num < 10) return unidades[num];
-    if (num < 20) return decenas[num - 10];
-    if (num < 100) {
-      const unidad = num % 10;
-      const decena = Math.floor(num / 10);
-      return decena === 2 && unidad > 0 ? `veinti${unidades[unidad]}` : `${decenasCompuestas[decena - 2]}${unidad > 0 ? ' y ' + unidades[unidad] : ''}`;
+  
+  const convertirNumeroALetras = (num) => {
+    const unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+    const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+    const diez_y = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
+    const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+
+    const entero = Math.floor(num);
+    const centavos = Math.round((num - entero) * 100);
+    const centavosStr = centavos.toString().padStart(2, '0');
+
+    if (entero === 0) return `CERO PESOS ${centavosStr}/100 M.N.`;
+    if (entero === 100) return `CIEN PESOS ${centavosStr}/100 M.N.`;
+
+    let letras = '';
+    
+    if (entero >= 1000) {
+      const miles = Math.floor(entero / 1000);
+      const resto = entero % 1000;
+      if (miles === 1) letras += 'MIL ';
+      else letras += convertirNumeroALetras(miles).replace(' PESOS 00/100 M.N.', '') + ' MIL ';
+      if (resto > 0) letras += convertirNumeroALetras(resto).replace(' PESOS 00/100 M.N.', '');
+    } else {
+      let n = entero;
+      if (n >= 100) {
+        letras += centenas[Math.floor(n / 100)] + ' ';
+        n %= 100;
+      }
+      if (n >= 20) {
+        letras += decenas[Math.floor(n / 10)] + (n % 10 > 0 ? ' Y ' : ' ');
+        n %= 10;
+      } else if (n >= 10) {
+        letras += diez_y[n - 10] + ' ';
+        n = 0;
+      }
+      if (n > 0) {
+        letras += unidades[n] + ' ';
+      }
     }
-    if (num < 1000) {
-      const centena = Math.floor(num / 100);
-      const resto = num % 100;
-      return `${centenas[centena - 1]}${resto > 0 ? ' ' + totalEnLetras(resto) : ''}`;
-    }
-    if (num < 10000) {
-      const millar = Math.floor(num / 1000);
-      const resto = num % 1000;
-      return `${millar === 1 ? 'mil' : unidades[millar] + ' mil'}${resto > 0 ? ' ' + totalEnLetras(resto) : ''}`;
-    }
-    return num.toString();
+
+    return `${letras.trim()} PESOS ${centavosStr}/100 M.N.`;
   };
 
-  const generarPDF = () => {
-    // Adapted ticket generator using jsPDF + autoTable
-    const PAPER_WIDTH = 58;
-    const PAPER_HEIGHT = 200;
-    const MARGIN = 4;
-    const CENTER_X = PAPER_WIDTH / 2;
-    const RIGHT_X = PAPER_WIDTH - MARGIN;
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PAPER_WIDTH, PAPER_HEIGHT] });
-
-    const data = {
-
-      date: new Date(venta.fecha).toLocaleString(),
-      saleId: String(venta.id || ''),
-      items: (productos || []).map(p => ({ quantity: p.cantidad, name: p.descripcion, price: Number(p.precio_unitario) || 0 })),
-      total: Number(venta.total) || 0
-    };
-
-    let y = 5;
-
-    doc.setFontSize(12);
-    doc.setFont('arial', 'bold');
-    doc.text('CLIMAS GAMA', CENTER_X, y, { align: 'center' });
-
-    y += 2;
-    doc.text('-------------------------------------------', CENTER_X, y, { align: 'center' });
-
-    y += 2;
-    doc.setFontSize(10);
-    doc.setFont('arial', 'normal');
-    doc.text(`Fecha: ${data.date}`, MARGIN, y);
-    y += 4;
-    doc.text(`ID: ${String(data.saleId).slice(0, 12)}${String(data.saleId).length > 12 ? '...' : ''}`, MARGIN, y);
-
-    y += 3;
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Cant', 'Prod', 'Total']],
-      body: data.items.map(item => [
-        item.quantity,
-        String(item.name),
-        `$${(item.price * item.quantity).toFixed(2)}`
-      ]),
-      theme: 'plain',
-      styles: {
-        fontSize: 8,
-        cellPadding: 1,
-        overflow: 'linebreak',
-        valign: 'middle'
-      },
-      headStyles: {
-        fontStyle: 'bold',
-        halign: 'center'
-      },
-      columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 13, halign: 'right' }
-      },
-      margin: { left: MARGIN, right: MARGIN }
+  const imprimirTicket = () => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [58, 210] 
     });
 
-    // lastAutoTable may not exist if there are no items
-    y = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 5 : (y + 20);
+    const width = doc.internal.pageSize.getWidth();
+    const margin = 4;
+    const centerX = width / 2;
+    let y = 5;
 
-    const total = Number(data.total) || 0;
-
-    doc.setFontSize(10);
-    doc.setFont('arial', 'bold');
-    doc.text(`TOTAL: $${total.toFixed(2)}`, RIGHT_X, y, { align: 'right' });
-
-    y += 5;
-    doc.setFontSize(10);
-    doc.setFont('arial', 'normal');
-
-    const footerText = '¡Gracias por su compra!';
-    const maxFooterWidth = PAPER_WIDTH - (MARGIN * 2);
-    const footerLines = doc.splitTextToSize(footerText, maxFooterWidth);
-    doc.text(footerLines, CENTER_X, y + 5, { align: 'center' });
-
-    y += 3;
-    const facturaInfo = 'Solicita tu factura al siguiente numero: ';
-    const facturaNum = '5569700587';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('TLAPALERÍA GAMA', centerX, y, { align: 'center' });
     
-    doc.text(facturaInfo, CENTER_X, y + 10, { align: 'center' });
-    doc.text(facturaNum, CENTER_X, y + 15, { align: 'center' });  
+    y += 4;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const directionLines = doc.splitTextToSize('Prol. Av. Juarez 435, El Contadero, 05500, Cuajimalpa de Morelos, CDMX', width - (margin * 2));
+    directionLines.forEach(line => {
+      doc.text(line, centerX, y, { align: 'center' });
+      y += 3;
+    });
+    y += 3;
+    doc.text('--------------------------------------------------', centerX, y, { align: 'center' });
 
-    doc.save(`ticket_${String(data.saleId).slice(0, 6)}.pdf`);
+    y += 4;
+    doc.text(`Fecha: ${new Date(venta.fecha).toLocaleString()}`, margin, y);
+    y += 4;
+    doc.text(`Folio: #${venta.id}`, margin, y);
+    y += 4;
+    doc.text(`Vendedor: ${venta.nombre_vendedor || 'General'}`, margin, y);
+    
+    y += 2;
+    autoTable(doc, {
+      startY: y,
+      head: [['Cant', 'Desc', 'Importe']],
+      body: productos.map(p => [
+        p.cantidad,
+        p.descripcion.substring(0, 15), 
+        `$${(p.cantidad * Number(p.precio_unitario)).toFixed(2)}`
+      ]),
+      theme: 'plain',
+      styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+      headStyles: { fontStyle: 'bold', halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 6, halign: 'center' },
+        1: { cellWidth: 'auto' }, 
+        2: { cellWidth: 12, halign: 'right' }
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    y = doc.lastAutoTable.finalY + 4;
+    
+    const rightX = width - margin;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(`TOTAL: $${Number(venta.total).toFixed(2)} MXN`, rightX, y, { align: 'right' });
+    
+    y += 4;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    
+    if (venta.forma_pago === 'Efectivo') {
+      doc.text(`Efectivo: $${Number(venta.monto_recibido || 0).toFixed(2)}`, rightX, y, { align: 'right' });
+      y += 3;
+      doc.text(`Cambio: $${Number(venta.cambio || 0).toFixed(2)}`, rightX, y, { align: 'right' });
+      y += 4; 
+    } else {
+      doc.text(`Pago con: ${venta.forma_pago}`, rightX, y, { align: 'right' });
+      y += 4;
+    }
+
+    doc.setFontSize(6);
+    doc.setFont('courier', 'normal'); 
+    const totalLetras = convertirNumeroALetras(Number(venta.total));
+    const splitLetras = doc.splitTextToSize(`(${totalLetras})`, width - (margin * 2));
+    doc.text(splitLetras, centerX, y, { align: 'center' });
+    
+    y += (splitLetras.length * 3) + 2;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('¡Gracias por su compra!', centerX, y, { align: 'center' });
+    y += 4;
+    doc.setFontSize(7);
+    doc.text('Solicita tu factura al siguiente número: ', centerX, y, { align: 'center' });
+    y += 3;
+    doc.text('55-6970-0587', centerX, y, { align: 'center' });
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = pdfUrl;
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(pdfUrl);
+      }, 1000);
+    };
   };
 
-
-
   return (
-    // Backdrop con scroll si el contenido crece
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto">
-      {/* Contenedor del modal: columna, con header y footer 'sticky' */}
-      <div className="relative w-full max-w-md my-6 bg-white border rounded-xl shadow-lg flex flex-col max-h-[90vh]">
-        {/* Header fijo */}
-        <div className="sticky top-0 z-10 bg-white border-b px-6 pt-5 pb-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">🧾 Ticket de Venta #{venta.id}</h2>
-            <button
-              onClick={onClose}
-              className="rounded-lg px-2 py-1 text-slate-600 hover:bg-slate-100"
-              aria-label="Cerrar"
-            >
-              ✖
-            </button>
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]">
+        
+        {/* Header Visual */}
+        <div className="bg-emerald-500 p-6 rounded-t-2xl text-center text-white">
+          <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-sm">
+             <span className="text-3xl">✅</span>
           </div>
-          <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-700">
-            <span><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleDateString()}</span>
-            <span><strong>Forma de pago:</strong> {venta.forma_pago}</span>
-            <span><strong>Vendedor:</strong> {venta.nombre_vendedor}</span>
+          <h2 className="text-2xl font-bold">¡Venta Exitosa!</h2>
+          <p className="text-emerald-100 text-sm mt-1">La transacción se guardó correctamente</p>
+        </div>
+
+        {/* Resumen */}
+        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+          <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+             <span className="text-slate-500">Total Pagado</span>
+             <span className="text-2xl font-bold text-slate-800">${Number(venta.total).toFixed(2)}</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+             <div>
+                <p className="text-slate-400 text-xs uppercase font-bold">Cambio</p>
+                <p className="font-semibold text-slate-700">${Number(venta.cambio || 0).toFixed(2)}</p>
+             </div>
+             <div>
+                <p className="text-slate-400 text-xs uppercase font-bold">Método</p>
+                <p className="font-semibold text-slate-700">{venta.forma_pago}</p>
+             </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 border border-slate-100">
+             <p className="mb-1"><strong>Ticket ID:</strong> #{venta.id}</p>
+             <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
           </div>
         </div>
 
-        {/* Cuerpo scrollable */}
-        <div className="px-6 py-3 overflow-y-auto">
-          <ul className="text-sm divide-y">
-            {productos.map((p, i) => (
-              <li key={i} className="py-2">
-                <div className="font-medium">{p.descripcion}</div>
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Cant: {p.cantidad}</span>
-                  <span>P.Unit: ${p.precio_unitario}</span>
-                  <span>Subt: ${(p.cantidad * p.precio_unitario).toFixed(2)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <div className="border-t mt-3 pt-3 text-right">
-            <p className="font-bold text-lg text-blue-700">Total: ${venta.total}</p>
-          </div>
-        </div>
-
-        {/* Footer fijo con botones */}
-        <div className="sticky bottom-0 z-10 bg-white border-t px-6 py-3 flex items-center justify-between">
+        {/* Acciones */}
+        <div className="p-4 border-t border-slate-100 grid grid-cols-2 gap-3">
           <button
-            onClick={generarPDF}
-            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+            onClick={onClose}
+            className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition"
           >
-            Exportar PDF
+            Cerrar
           </button>
           <button
-            onClick={() => window.print()}
-            className="px-4 py-2 rounded-xl bg-slate-600 text-white text-sm font-medium hover:bg-slate-700 transition"
+            onClick={imprimirTicket}
+            className="px-4 py-3 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
           >
-            Imprimir
+            <span>🖨️</span> Imprimir Ticket
           </button>
         </div>
+
       </div>
     </div>
   );

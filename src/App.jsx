@@ -8,18 +8,18 @@ import Productos from './pages/Productos';
 import AgregarProducto from './pages/AgregarProducto';
 import EditarProducto from './pages/EditarProducto';
 import Inventario from './pages/Inventario';
+import EntradasMercancia from './pages/EntradasMercancia';
 import NuevaVenta from './pages/NuevaVenta';
-import HistorialVentas from './components/HistorialVentas';
+import HistorialVentas from './pages/HistorialVentas'; 
 import Proveedores from './pages/Proveedores';
 import CorteCaja from './pages/CorteCaja';
 import PorcentajesDeUtilidad from './pages/PorcentajesDeUtilidad';
 import Usuarios from './pages/Usuarios';
-import EditarUsuario from './pages/EditarUsuario';
 import RegistrarUsuario from './pages/RegistrarUsuario';
+import EditarUsuario from './pages/EditarUsuario';
 import Cotizaciones from './pages/Cotizaciones';
 import NuevaCotizacion from './pages/NuevaCotizacion';
 import Categorias from './pages/Categorias';
-import EntradasMercancia from './pages/EntradasMercancia';
 
 // Components
 import NavBar from './components/Navbar';
@@ -62,7 +62,7 @@ function LayoutPrivado() {
           <Route path="cotizaciones/nueva" element={<NuevaCotizacion />} />
           <Route path="cotizaciones/editar/:id" element={<NuevaCotizacion />} />
 
-          {/* Fallback privado */}
+          {/* Fallback privado (cualquier ruta no definida dentro de / redirige o muestra error) */}
           <Route path="*" element={<AccesoDenegado />} />
         </Routes>
       </main>
@@ -75,11 +75,11 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
-          {/* Público */}
+          {/* Rutas Públicas */}
           <Route path="/" element={<Login />} />
           <Route path="/denegado" element={<AccesoDenegado />} />
 
-          {/* Privado */}
+          {/* Rutas Privadas */}
           <Route
             path="/*"
             element={
@@ -90,6 +90,8 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
+      
+      {/* Contenedor de notificaciones global */}
       <ToastContainer position="top-center" autoClose={2500} />
     </>
   );

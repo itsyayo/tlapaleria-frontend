@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import API from '../services/api';
 import { toast } from 'react-toastify';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
-import QuoteModal from '../components/QuoteModal'; // ⬅️ Modal que adapta tu TicketModal
+import { useNavigate, useParams, Link } from 'react-router-dom'; 
+import { Trash2, Save, Search, User, CreditCard } from 'lucide-react';
+import QuoteModal from '../components/QuoteModal';
 
 export default function NuevaCotizacion() {
   const [productos, setProductos] = useState([]);
@@ -11,12 +11,15 @@ export default function NuevaCotizacion() {
   const [lineas, setLineas] = useState([]);
   const [formaPago, setFormaPago] = useState('Efectivo');
   const [cliente, setCliente] = useState('');
+  
+  const [loading, setLoading] = useState(false); 
+  const [submitting, setSubmitting] = useState(false);
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [cotizacionFinalizada, setCotizacionFinalizada] = useState(null);
 
   const { id } = useParams();
-  const token = localStorage.getItem('token');
+  const navigate = useNavigate(); 
 
   function normalizarTexto(texto = '') {
     return String(texto)
@@ -28,41 +31,43 @@ export default function NuevaCotizacion() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await API.get('/productos', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setProductos(res.data);
-      } catch {
-        toast.error('Error al cargar productos');
+        const res = await API.get('/productos');
+        setProductos(res.data || []);
+      } catch (err) {
+        console.error(err);
       }
     })();
   }, []);
 
-  // Si hay id → cargar cotización existente
   useEffect(() => {
     if (!id) return;
     (async () => {
+      setLoading(true);
       try {
-        const res = await API.get(`/cotizaciones/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCliente(res.data.cliente || '');
-        setFormaPago(res.data.forma_pago || 'Efectivo');
+        const res = await API.get(`/cotizaciones/${id}`);
+        const data = res.data;
+        
+        setCliente(data.cliente || '');
+        setFormaPago(data.forma_pago || 'Efectivo');
         setLineas(
-          res.data.productos.map((p) => ({
+          data.productos.map((p) => ({
             id: p.id,
             descripcion: p.descripcion,
-            precio_venta: p.precio_unitario,
-            cantidad: p.cantidad,
-            cantidad_stock: p.cantidad_stock,
-            subtotal: p.subtotal,
+            precio_venta: Number(p.precio_unitario),
+            cantidad: Number(p.cantidad),
+            cantidad_stock: Number(p.cantidad_stock),
+            imagen: p.imagen
           }))
         );
-      } catch {
+      } catch (err) {
+        console.error(err);
         toast.error('No se pudo cargar la cotización');
+        navigate('/cotizaciones');
+      } finally {
+        setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, navigate]);
 
   const productosFiltrados = productos.filter((p) => {
     const textoProducto = normalizarTexto(`${p.codigo} ${p.descripcion}`);
@@ -71,13 +76,13 @@ export default function NuevaCotizacion() {
       palabras.length === 0 ||
       palabras.every((palabra) => textoProducto.includes(palabra))
     );
-  });
+  }).slice(0, 12);
 
   const agregar = (producto) => {
     const existe = lineas.find((p) => p.id === producto.id);
     if (existe) {
       actualizarCantidad(producto.id, existe.cantidad + 1);
-      toast.info('Cantidad actualizada');
+      toast.info(`+1 ${producto.descripcion}`);
       return;
     }
     setLineas([...lineas, { ...producto, cantidad: 1 }]);
@@ -101,8 +106,9 @@ export default function NuevaCotizacion() {
   );
 
   async function guardar() {
-    if (lineas.length === 0) return;
+    if (lineas.length === 0) return toast.warning('La cotización está vacía');
 
+    setSubmitting(true);
     const payload = {
       cliente: cliente || null,
       forma_pago: formaPago,
@@ -111,175 +117,228 @@ export default function NuevaCotizacion() {
 
     try {
       if (id) {
-        await API.put(`/cotizaciones/${id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await API.put(`/cotizaciones/${id}`, payload);
         toast.success(`Cotización #${id} actualizada`);
-        // Recargar detalle
-        const detalle = await API.get(`/cotizaciones/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        
+        const detalle = await API.get(`/cotizaciones/${id}`);
         setCotizacionFinalizada(detalle.data);
         setMostrarModal(true);
       } else {
-        const res = await API.post('/cotizaciones', payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await API.post('/cotizaciones', payload);
         toast.success(`Cotización creada (#${res.data.cotizacion_id})`);
 
-        // Traer detalle recién creada
-        const detalle = await API.get(
-          `/cotizaciones/${res.data.cotizacion_id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const detalle = await API.get(`/cotizaciones/${res.data.cotizacion_id}`);
         setCotizacionFinalizada(detalle.data);
         setMostrarModal(true);
+        
+        if (!id) {
+           setLineas([]);
+           setCliente('');
+        }
       }
-    } catch {
-      toast.error('Error al guardar cotización');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="page py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+    // CAMBIO: Contenedor estándar max-w-7xl
+    <div className="max-w-7xl mx-auto mt-8 px-4 pb-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
       {/* Columna izquierda: catálogo */}
-      <div className="md:col-span-2">
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            type="text"
-            placeholder="👤 Cliente (opcional)"
-            value={cliente}
-            onChange={(e) => setCliente(e.target.value)}
-            className="rounded-xl border px-4 py-3 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-          <select
-            className="rounded-xl border px-4 py-3 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            value={formaPago}
-            onChange={(e) => setFormaPago(e.target.value)}
-          >
-            {['Efectivo', 'Crédito', 'Débito', 'Transferencia'].map((fp) => (
-              <option key={fp} value={fp}>
-                {fp}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="🔍 Buscar producto por código o descripción"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const productoEncontrado = productos.find(
-                  (p) => normalizarTexto(p.codigo) === normalizarTexto(busqueda)
-                );
-                if (productoEncontrado) agregar(productoEncontrado);
-                else toast.error('Producto no encontrado');
-                setBusqueda('');
-              }
-            }}
-            className="rounded-xl border px-4 py-3 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+      <div className="lg:col-span-2 flex flex-col gap-4">
+        
+        {/* Header y Filtros Inline */}
+        <div className="bg-white border rounded-xl p-4 shadow-sm">
+           <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+             <Search className="text-blue-600" size={24}/> Catálogo de Productos
+           </h2>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="relative">
+                <User className="absolute left-3 top-3 text-slate-400" size={18} />
+                <input
+                    type="text"
+                    placeholder="Cliente (Opcional)"
+                    value={cliente}
+                    onChange={(e) => setCliente(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 pl-10 pr-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+            </div>
+
+            <div className="relative">
+                <CreditCard className="absolute left-3 top-3 text-slate-400" size={18} />
+                <select
+                    className="w-full rounded-lg border border-slate-300 pl-10 pr-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    value={formaPago}
+                    onChange={(e) => setFormaPago(e.target.value)}
+                >
+                    {['Efectivo', 'Crédito', 'Débito', 'Transferencia'].map((fp) => (
+                    <option key={fp} value={fp}>{fp}</option>
+                    ))}
+                </select>
+            </div>
+
+            <input
+                type="text"
+                placeholder="🔍 Buscar código..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const encontrado = productos.find(p => normalizarTexto(p.codigo) === normalizarTexto(busqueda));
+                      if (encontrado) {
+                          agregar(encontrado);
+                          setBusqueda('');
+                      } else {
+                          toast.warning('Producto no encontrado');
+                      }
+                  }
+                }}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* Grid de Productos */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
           {productosFiltrados.map((producto) => (
             <div
               key={producto.id}
-              className="bg-white border rounded-xl p-3 shadow hover:shadow-md cursor-pointer transition"
+              className="bg-white border rounded-xl p-3 shadow-sm hover:shadow-md cursor-pointer transition group border-slate-200 hover:border-blue-300"
               onClick={() => agregar(producto)}
             >
-              {producto.imagen && (
-                <img
-                  src={producto.imagen}
-                  alt={producto.descripcion}
-                  className="w-full h-32 object-cover rounded mb-2"
-                />
-              )}
-              <h3 className="font-semibold text-sm">{producto.descripcion}</h3>
-              <p className="text-xs text-slate-500">
-                Código: {producto.codigo}
-              </p>
-              <p className="text-sm font-bold text-blue-600">
-                ${producto.precio_venta}
-              </p>
-              <p className="text-xs text-slate-500">
-                Stock: {producto.cantidad_stock}
-              </p>
+              <div className="aspect-square bg-slate-100 rounded-lg mb-2 overflow-hidden flex items-center justify-center">
+                  {producto.imagen ? (
+                    <img
+                        src={`${import.meta.env.VITE_API_URL}${producto.imagen}`}
+                        alt={producto.descripcion}
+                        className="w-full h-full object-cover"
+                        onError={(e) => e.target.style.display='none'}
+                    />
+                  ) : (
+                    <span className="text-2xl text-slate-300">📦</span>
+                  )}
+              </div>
+              
+              <h3 className="font-semibold text-sm text-slate-800 line-clamp-2 h-10 mb-1 leading-tight">
+                  {producto.descripcion}
+              </h3>
+              
+              <div className="flex justify-between items-end">
+                <div>
+                   <p className="text-[10px] text-slate-500 font-mono">{producto.codigo}</p>
+                   <p className="text-xs text-slate-400">Stock: {producto.cantidad_stock}</p>
+                </div>
+                <p className="text-sm font-bold text-blue-600">
+                    ${Number(producto.precio_venta).toFixed(2)}
+                </p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Columna derecha: editor */}
-      <aside className="bg-white border rounded-xl p-4 shadow h-fit md:sticky md:top-6">
-        <h2 className="text-lg font-bold mb-3">
-          📄 {id ? `Editar cotización #${id}` : 'Nueva cotización'}
-        </h2>
+      {/* Columna derecha: Editor (Sticky) */}
+      <div className="lg:col-span-1">
+        <aside className="bg-white border rounded-xl shadow-sm flex flex-col h-[calc(100vh-100px)] sticky top-4">
+            <div className="p-4 border-b bg-slate-50 rounded-t-xl">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                📄 {id ? `Editando #${id}` : 'Nueva Cotización'}
+                </h2>
+            </div>
 
-        <div className="overflow-auto max-h-64 mb-3">
-          <table className="w-full text-sm">
-            <thead className="text-slate-500 border-b">
-              <tr>
-                <th className="p-2 text-left">Producto</th>
-                <th className="p-2 text-center">Cant.</th>
-                <th className="p-2 text-right">Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineas.map((item) => (
-                <tr key={item.id} className="border-b last:border-0">
-                  <td className="p-2">{item.descripcion}</td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="number"
-                      value={item.cantidad}
-                      min="1"
-                      onChange={(e) =>
-                        actualizarCantidad(item.id, e.target.value)
-                      }
-                      className="w-14 rounded border text-center"
-                    />
-                  </td>
-                  <td className="p-2 text-right">
-                    ${(item.precio_venta * item.cantidad).toFixed(2)}
-                  </td>
-                  <td className="p-2 text-right">
-                    <button
-                      onClick={() => eliminar(item.id)}
-                      className="p-1 rounded hover:bg-rose-100 text-rose-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {lineas.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="p-3 text-center text-slate-400">
-                    Sin productos
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            <div className="flex-1 overflow-auto p-2">
+                <table className="w-full text-sm">
+                    <thead className="text-slate-500 text-xs uppercase font-semibold border-b bg-white sticky top-0">
+                    <tr>
+                        <th className="p-2 text-left bg-white">Prod</th>
+                        <th className="p-2 text-center bg-white">Cant</th>
+                        <th className="p-2 text-right bg-white">Total</th>
+                        <th className="bg-white"></th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                    {lineas.map((item) => (
+                        <tr key={item.id}>
+                        <td className="p-2">
+                            <div className="font-medium text-slate-700 line-clamp-2">{item.descripcion}</div>
+                            <div className="text-[10px] text-slate-400">${item.precio_venta}</div>
+                        </td>
+                        <td className="p-2 text-center">
+                            <input
+                            type="number"
+                            value={item.cantidad}
+                            min="1"
+                            onChange={(e) => actualizarCantidad(item.id, e.target.value)}
+                            className="w-12 rounded border text-center py-1 focus:ring-1 focus:ring-blue-500 outline-none"
+                            />
+                        </td>
+                        <td className="p-2 text-right font-bold text-slate-700">
+                            ${(item.precio_venta * item.cantidad).toFixed(2)}
+                        </td>
+                        <td className="p-2 text-right">
+                            <button
+                            onClick={() => eliminar(item.id)}
+                            className="p-1.5 rounded hover:bg-rose-100 text-rose-500 transition"
+                            >
+                            <Trash2 size={16} />
+                            </button>
+                        </td>
+                        </tr>
+                    ))}
+                    {lineas.length === 0 && (
+                        <tr>
+                        <td colSpan="4" className="p-8 text-center text-slate-400">
+                            <p className="text-sm">Agrega productos del catálogo</p>
+                        </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+            </div>
 
-        <div className="text-lg font-bold flex justify-between mb-3">
-          <span>Total:</span>
-          <span>${total.toFixed(2)}</span>
-        </div>
+            {/* Footer del Ticket */}
+            <div className="p-4 border-t bg-slate-50 rounded-b-xl space-y-4">
+                <div className="flex justify-between items-end">
+                    <span className="text-slate-500 font-medium">Total Estimado:</span>
+                    <span className="text-3xl font-black text-slate-800 tracking-tight">
+                        ${total.toFixed(2)}
+                    </span>
+                </div>
 
-        <button
-          className="w-full px-4 py-2 rounded text-white font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-          onClick={guardar}
-          disabled={lineas.length === 0}
-        >
-          {id ? 'Guardar cambios' : 'Guardar cotización'}
-        </button>
-      </aside>
+                <button
+                    className={`w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg transition
+                        ${lineas.length === 0 || submitting 
+                            ? 'bg-slate-300 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30 active:scale-[0.98]'}`}
+                    onClick={guardar}
+                    disabled={lineas.length === 0 || submitting}
+                >
+                    {submitting ? 'Guardando...' : (
+                        <>
+                           <Save size={20} />
+                           {id ? 'Actualizar Cotización' : 'Generar Cotización'}
+                        </>
+                    )}
+                </button>
+                
+                <Link to="/cotizaciones" className="block text-center text-xs text-slate-500 hover:text-blue-600 hover:underline">
+                    Cancelar y volver
+                </Link>
+            </div>
+        </aside>
+      </div>
 
       {/* Modal de cotización */}
       {mostrarModal && cotizacionFinalizada && (
@@ -289,8 +348,7 @@ export default function NuevaCotizacion() {
           onClose={() => {
             setMostrarModal(false);
             setCotizacionFinalizada(null);
-            setLineas([]);
-            setCliente('');
+            if (id) navigate('/cotizaciones');
           }}
         />
       )}
