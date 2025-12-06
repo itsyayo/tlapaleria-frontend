@@ -20,7 +20,6 @@ import EditarUsuario from './pages/EditarUsuario';
 import Cotizaciones from './pages/Cotizaciones';
 import NuevaCotizacion from './pages/NuevaCotizacion';
 import Categorias from './pages/Categorias';
-import Inventario from './pages/Inventario';
 
 // Components
 import NavBar from './components/Navbar';
