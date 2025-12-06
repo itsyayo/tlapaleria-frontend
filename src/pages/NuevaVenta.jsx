@@ -303,7 +303,7 @@ export default function NuevaVenta() {
           
           {/* Selector Forma Pago */}
           <div className="grid grid-cols-2 gap-2 mb-4">
-            {['Efectivo', 'Tarjeta', 'Transferencia'].map((fp) => (
+            {['Efectivo', 'Crédito', 'Débito', 'Transferencia'].map((fp) => (
               <button
                 key={fp}
                 onClick={() => setFormaPago(fp)}
