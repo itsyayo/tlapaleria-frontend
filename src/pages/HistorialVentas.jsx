@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import API from '../services/api'; 
+import API from '../services/api';
 import { toast } from 'react-toastify';
-import { Calendar, CreditCard, Search, Eye, FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Calendar, CreditCard, Search, Eye, FileText, Filter, 
+  ChevronLeft, ChevronRight 
+} from 'lucide-react';
 import TicketModal from '../components/TicketModal';
 
 function HistorialVentas() {
@@ -13,13 +16,13 @@ function HistorialVentas() {
   const [fechaHasta, setFechaHasta] = useState('');
   const [busquedaId, setBusquedaId] = useState('');
 
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 15;
+
   const [showModal, setShowModal] = useState(false);
   const [ventaActual, setVentaActual] = useState(null);
   const [productosVenta, setProductosVenta] = useState([]);
   const [loadingTicket, setLoadingTicket] = useState(false);
-
-  const [paginaActual, setPaginaActual] = useState(1);
-  const itemsPorPagina = 15;
 
   useEffect(() => {
     const fetchVentas = async () => {
@@ -50,7 +53,7 @@ function HistorialVentas() {
       setShowModal(true);
     } catch (err) {
       console.error(err);
-      toast.error('No se pudieron cargar los detalles de la venta');
+      toast.error('No se pudieron cargar los detalles');
     } finally {
       setLoadingTicket(false);
     }
@@ -59,7 +62,6 @@ function HistorialVentas() {
   const ventasFiltradas = useMemo(() => {
     return ventas.filter((v) => {
       const fechaVenta = new Date(v.fecha);
-      
       const desde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
       const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59`) : null;
 
@@ -76,14 +78,13 @@ function HistorialVentas() {
   const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
   const ventasPaginadas = ventasFiltradas.slice(indicePrimerItem, indiceUltimoItem);
   const totalPaginas = Math.ceil(ventasFiltradas.length / itemsPorPagina);
-  
+
   const resumen = useMemo(() => {
     return ventasFiltradas.reduce((acc, curr) => ({
       total: acc.total + Number(curr.total),
       count: acc.count + 1
     }), { total: 0, count: 0 });
   }, [ventasFiltradas]);
-
 
   if (loading) {
     return (
@@ -104,8 +105,6 @@ function HistorialVentas() {
            </h1>
            <p className="text-sm text-slate-500">Consulta y reimpresión de tickets</p>
         </div>
-
-        {/* Tarjetas de Resumen (Se actualizan con los filtros) */}
         <div className="flex gap-4">
             <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm min-w-[120px]">
                 <p className="text-xs text-slate-500 uppercase font-bold">Transacciones</p>
@@ -123,8 +122,6 @@ function HistorialVentas() {
       {/* Barra de Filtros */}
       <div className="bg-white border rounded-xl shadow-sm p-5 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Buscador ID */}
           <div className="relative">
              <label className="text-xs font-bold text-slate-500 mb-1 block">Folio / ID</label>
              <div className="relative">
@@ -138,8 +135,6 @@ function HistorialVentas() {
                 />
              </div>
           </div>
-
-          {/* Filtro Pago */}
           <div>
             <label className="text-xs font-bold text-slate-500 mb-1 block">Forma de Pago</label>
             <div className="relative">
@@ -156,8 +151,6 @@ function HistorialVentas() {
                 </select>
             </div>
           </div>
-
-          {/* Fechas */}
           <div>
             <label className="text-xs font-bold text-slate-500 mb-1 block">Desde</label>
             <div className="relative">
@@ -170,7 +163,6 @@ function HistorialVentas() {
                 />
             </div>
           </div>
-
           <div>
             <label className="text-xs font-bold text-slate-500 mb-1 block">Hasta</label>
             <div className="relative">
@@ -183,12 +175,11 @@ function HistorialVentas() {
                 />
             </div>
           </div>
-
         </div>
       </div>
 
       {/* Tabla de Resultados */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden mb-4">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 border-b text-xs uppercase font-semibold text-slate-500">
@@ -202,7 +193,7 @@ function HistorialVentas() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {ventasFiltradas.length === 0 ? (
+              {ventasPaginadas.length === 0 ? ( 
                  <tr>
                     <td colSpan="6" className="p-10 text-center text-slate-400">
                         <div className="flex flex-col items-center gap-2">
@@ -212,43 +203,43 @@ function HistorialVentas() {
                     </td>
                  </tr>
               ) : (
-                ventasFiltradas.map((v) => (
+                ventasPaginadas.map((v) => ( 
                     <tr key={v.id} className="hover:bg-slate-50 transition">
-                    <td className="p-4 font-mono font-medium text-slate-700">#{v.id}</td>
-                    <td className="p-4">
-                        {new Date(v.fecha).toLocaleDateString('es-MX', { 
-                            year: 'numeric', month: 'short', day: 'numeric', 
-                            hour: '2-digit', minute: '2-digit'
-                        })}
-                    </td>
-                    <td className="p-4">
-                        <span className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 text-xs flex items-center justify-center font-bold text-slate-600">
-                                {v.nombre_vendedor?.charAt(0) || '?'}
-                            </div>
-                            {v.nombre_vendedor}
-                        </span>
-                    </td>
-                    <td className="p-4">
-                        <span className={`px-2 py-1 rounded-md text-xs font-bold border 
-                            ${v.forma_pago === 'Efectivo' ? 'bg-green-50 text-green-700 border-green-100' : 
-                              v.forma_pago === 'Tarjeta' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
-                              'bg-blue-50 text-blue-700 border-blue-100'}`}>
-                            {v.forma_pago}
-                        </span>
-                    </td>
-                    <td className="p-4 text-right font-bold text-slate-800">
-                        ${Number(v.total).toFixed(2)}
-                    </td>
-                    <td className="p-4 text-center">
-                        <button
-                        onClick={() => verTicket(v)}
-                        disabled={loadingTicket}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition text-xs font-medium shadow-sm"
-                        >
-                        <Eye size={14} /> Ver Ticket
-                        </button>
-                    </td>
+                      <td className="p-4 font-mono font-medium text-slate-700">#{v.id}</td>
+                      <td className="p-4">
+                          {new Date(v.fecha).toLocaleDateString('es-MX', { 
+                              year: 'numeric', month: 'short', day: 'numeric', 
+                              hour: '2-digit', minute: '2-digit'
+                          })}
+                      </td>
+                      <td className="p-4">
+                          <span className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-slate-200 text-xs flex items-center justify-center font-bold text-slate-600">
+                                  {v.nombre_vendedor?.charAt(0) || '?'}
+                              </div>
+                              {v.nombre_vendedor}
+                          </span>
+                      </td>
+                      <td className="p-4">
+                          <span className={`px-2 py-1 rounded-md text-xs font-bold border 
+                              ${v.forma_pago === 'Efectivo' ? 'bg-green-50 text-green-700 border-green-100' : 
+                                v.forma_pago === 'Tarjeta' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
+                                'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                              {v.forma_pago}
+                          </span>
+                      </td>
+                      <td className="p-4 text-right font-bold text-slate-800">
+                          ${Number(v.total).toFixed(2)}
+                      </td>
+                      <td className="p-4 text-center">
+                          <button
+                          onClick={() => verTicket(v)}
+                          disabled={loadingTicket}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition text-xs font-medium shadow-sm"
+                          >
+                          <Eye size={14} /> Ver Ticket
+                          </button>
+                      </td>
                     </tr>
                 ))
               )}
@@ -257,6 +248,7 @@ function HistorialVentas() {
         </div>
       </div>
 
+      {/* Controles de Paginación */}
       {ventasFiltradas.length > 0 && (
         <div className="flex items-center justify-between bg-white border rounded-xl p-4 shadow-sm">
           <p className="text-sm text-slate-500">
@@ -284,7 +276,7 @@ function HistorialVentas() {
         </div>
       )}
 
-      {/* Modal Ticket (Reutilizamos el que acabamos de crear) */}
+      {/* Modal Ticket */}
       {showModal && ventaActual && (
         <TicketModal
           venta={ventaActual}

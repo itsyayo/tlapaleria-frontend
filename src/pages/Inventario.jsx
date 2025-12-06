@@ -82,7 +82,7 @@ function Inventario() {
 
   const { totalCompra, totalVenta } = useMemo(() => {
     return productosFiltrados.reduce((acc, p) => ({
-      totalCompra: acc.totalCompra + (Number(p.precio_compra || 0) * Number(p.cantidad_stock || 0)),
+      totalCompra: acc.totalCompra + (Number(p.precio_compra || 0) * Number(p.stock_faltante || 0)),
       totalVenta: acc.totalVenta + (Number(p.precio_venta || 0) * Number(p.cantidad_stock || 0))
     }), { totalCompra: 0, totalVenta: 0 });
   }, [productosFiltrados]);
@@ -305,7 +305,7 @@ function Inventario() {
                   
                   <td className="p-3 text-center">
                     {Number(p.stock_faltante) > 0 ? (
-                      <span className="text-rose-600 font-medium">-{p.stock_faltante}</span>
+                      <span className="text-rose-600 font-medium">- {p.stock_faltante}</span>
                     ) : (
                       <span className="text-slate-300">-</span>
                     )}
