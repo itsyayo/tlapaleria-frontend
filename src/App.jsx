@@ -20,6 +20,7 @@ import EditarUsuario from './pages/EditarUsuario';
 import Cotizaciones from './pages/Cotizaciones';
 import NuevaCotizacion from './pages/NuevaCotizacion';
 import Categorias from './pages/Categorias';
+import Inventario from './pages/Inventario';
 
 // Components
 import NavBar from './components/Navbar';
@@ -56,6 +57,7 @@ function LayoutPrivado() {
           <Route path="categorias" element={<Categorias />} />
           <Route path="corte-caja" element={<CorteCaja />} />
           <Route path="porcentajes-de-utilidad" element={<PorcentajesDeUtilidad />} />
+          <Route path="inventario" element={<Inventario/>} />
 
           {/* Cotizaciones */}
           <Route path="cotizaciones" element={<Cotizaciones />} />

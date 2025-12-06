@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUsuario } from '../hooks/useUsuario';
 
-// 1. Agregamos los iconos nuevos: History y Percent
 import { 
   Menu, X, LogOut, ShoppingCart, Package, Users, 
-  FileText, BarChart, Tag, Truck, Archive, History, Percent 
+  FileText, BarChart, Tag, Truck, Archive, History, Percent, ChartPie
 } from 'lucide-react';
 
 export default function NavBar() {
@@ -34,6 +33,7 @@ export default function NavBar() {
     { label: 'Recepción', path: '/inventario/entradas', icon: Archive, roles: ['admin', 'inventario'] },
     { label: 'Cotizaciones', path: '/cotizaciones', icon: FileText, roles: ['admin', 'ventas'] },
     { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin'] },
+    { label: 'Inventario', path: '/inventario', icon: ChartPie, roles: ['admin', 'inventario'] },
     
     { label: 'Utilidades', path: '/porcentajes-de-utilidad', icon: Percent, roles: ['admin'] },
     { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['admin'] },
@@ -63,7 +63,7 @@ export default function NavBar() {
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           
           {/* Logo y Menú Desktop */}

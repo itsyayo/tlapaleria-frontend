@@ -86,7 +86,7 @@ function TicketModal({ venta, productos, onClose }) {
       head: [['Cant', 'Desc', 'Importe']],
       body: productos.map(p => [
         p.cantidad,
-        p.descripcion.substring(0, 15), 
+        p.descripcion.substring(0, 40),  
         `$${(p.cantidad * Number(p.precio_unitario)).toFixed(2)}`
       ]),
       theme: 'plain',
@@ -189,6 +189,14 @@ function TicketModal({ venta, productos, onClose }) {
           <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 border border-slate-100">
              <p className="mb-1"><strong>Ticket ID:</strong> #{venta.id}</p>
              <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
+              <p><strong>Productos:</strong></p>
+              <ul className="list-disc list-inside max-h-32 overflow-y-auto">
+                {productos.map((p, index) => (
+                  <li key={index}>
+                    {p.cantidad} x {p.descripcion} @ ${Number(p.precio_unitario).toFixed(2)} = ${ (p.cantidad * Number(p.precio_unitario)).toFixed(2)}
+                  </li>
+                ))}
+              </ul>
           </div>
         </div>
 

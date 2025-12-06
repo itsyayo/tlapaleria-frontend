@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import API from '../services/api'; 
 import { toast } from 'react-toastify';
-import { Calendar, CreditCard, Search, Eye, FileText, Filter } from 'lucide-react';
+import { Calendar, CreditCard, Search, Eye, FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import TicketModal from '../components/TicketModal';
 
 function HistorialVentas() {
@@ -18,6 +18,9 @@ function HistorialVentas() {
   const [productosVenta, setProductosVenta] = useState([]);
   const [loadingTicket, setLoadingTicket] = useState(false);
 
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 15;
+
   useEffect(() => {
     const fetchVentas = async () => {
       setLoading(true);
@@ -32,6 +35,10 @@ function HistorialVentas() {
     };
     fetchVentas();
   }, []);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtroPago, fechaDesde, fechaHasta, busquedaId]);
 
   const verTicket = async (venta) => {
     if (loadingTicket) return;
@@ -65,12 +72,18 @@ function HistorialVentas() {
     });
   }, [ventas, filtroPago, fechaDesde, fechaHasta, busquedaId]);
 
+  const indiceUltimoItem = paginaActual * itemsPorPagina;
+  const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
+  const ventasPaginadas = ventasFiltradas.slice(indicePrimerItem, indiceUltimoItem);
+  const totalPaginas = Math.ceil(ventasFiltradas.length / itemsPorPagina);
+  
   const resumen = useMemo(() => {
     return ventasFiltradas.reduce((acc, curr) => ({
       total: acc.total + Number(curr.total),
       count: acc.count + 1
     }), { total: 0, count: 0 });
   }, [ventasFiltradas]);
+
 
   if (loading) {
     return (
@@ -243,6 +256,33 @@ function HistorialVentas() {
           </table>
         </div>
       </div>
+
+      {ventasFiltradas.length > 0 && (
+        <div className="flex items-center justify-between bg-white border rounded-xl p-4 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Mostrando <span className="font-bold">{indicePrimerItem + 1}</span> a <span className="font-bold">{Math.min(indiceUltimoItem, ventasFiltradas.length)}</span> de <span className="font-bold">{ventasFiltradas.length}</span> resultados
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+              disabled={paginaActual === 1}
+              className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="text-sm font-medium text-slate-600 px-2">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+              className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Ticket (Reutilizamos el que acabamos de crear) */}
       {showModal && ventaActual && (
