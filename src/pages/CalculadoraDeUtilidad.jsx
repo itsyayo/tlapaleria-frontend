@@ -110,6 +110,11 @@ export default function PorcentajesDeUtilidad() {
     setEditandoId(null);
   };
 
+  const comisionTerminal = (comision = 0.025, total) => {
+    const comisionTotal = total * comision;
+    return comisionTotal;
+  }
+
   if (loading) return <div className="p-10 text-center">Cargando configuración...</div>;
 
   return (
@@ -151,10 +156,13 @@ export default function PorcentajesDeUtilidad() {
                   <span className="text-blue-200">Utilidad Neta</span>
                   <span className="font-bold text-green-300">+${resultadoSimulacion.ganancia.toFixed(2)}</span>
                 </div>
-
+                <div className="flex justify-between items-center border-b border-blue-500/30 pb-2">
+                  <span className="text-blue-200">Comisión Terminal</span>
+                  <span className="font-bold text-red-300">-${comisionTerminal(0.025, resultadoSimulacion.venta).toFixed(2)}</span>
+                </div>
                 <div>
                   <span className="text-xs uppercase font-bold text-blue-200">Precio Sugerido</span>
-                  <div className="text-4xl font-bold mt-1">${resultadoSimulacion.venta.toFixed(2)}</div>
+                  <div className="text-4xl font-bold mt-1">${(resultadoSimulacion.venta + comisionTerminal(0.025, resultadoSimulacion.venta)).toFixed(2)}</div>
                 </div>
               </div>
             )

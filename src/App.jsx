@@ -13,7 +13,7 @@ import NuevaVenta from './pages/NuevaVenta';
 import HistorialVentas from './pages/HistorialVentas'; 
 import Proveedores from './pages/Proveedores';
 import CorteCaja from './pages/CorteCaja';
-import PorcentajesDeUtilidad from './pages/PorcentajesDeUtilidad';
+import CalculadoraUtilidad from './pages/CalculadoraDeUtilidad';
 import Usuarios from './pages/Usuarios';
 import RegistrarUsuario from './pages/RegistrarUsuario';
 import EditarUsuario from './pages/EditarUsuario';
@@ -66,7 +66,7 @@ function LayoutPrivado() {
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="corte-caja" element={<CorteCaja />} />
-              <Route path="porcentajes-de-utilidad" element={<PorcentajesDeUtilidad />} />
+              <Route path="calculadora-utilidad" element={<CalculadoraUtilidad />} />
               
               {/* Cotizaciones */}
               <Route path="cotizaciones" element={<Cotizaciones />} />

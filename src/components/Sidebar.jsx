@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { type: 'divider' },
     
     { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin'] },
-    { label: 'Utilidades', path: '/porcentajes-de-utilidad', icon: Percent, roles: ['admin'] },
+    { label: 'Utilidades', path: '/calculadora-utilidad', icon: Percent, roles: ['admin'] },
     { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['admin'] },
     { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin', 'inventario'] },
     { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin', 'inventario'] },
