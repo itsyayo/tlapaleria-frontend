@@ -39,9 +39,11 @@ export default function Login() {
 
       toast.success(`Bienvenido, ${usuario.nombre}`);
       
-      if (usuario.rol === 'admin' || usuario.rol === 'ventas') {
+      if (usuario.rol === 'admin') {
+        navigate('/dashboard');
+      } else if (usuario.rol === 'ventas') {
         navigate('/ventas/nueva');
-      } else {
+      } else{
         navigate('/productos');
       }
 

@@ -8,3 +8,13 @@ export const obtenerCorteCaja = async (filtros) => {
   });
   return data;
 };
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return { headers: { Authorization: `Bearer ${token}` } };
+};
+
+export const obtenerDashboardStats = async () => {
+  const response = await API.get(`/reportes/dashboard`, getAuthHeaders());
+  return response.data;
+};

@@ -10,7 +10,7 @@ import EditarProducto from './pages/EditarProducto';
 import Inventario from './pages/Inventario';
 import EntradasMercancia from './pages/EntradasMercancia';
 import NuevaVenta from './pages/NuevaVenta';
-import HistorialVentas from './pages/HistorialVentas'; 
+import HistorialVentas from './pages/HistorialVentas';
 import Proveedores from './pages/Proveedores';
 import CorteCaja from './pages/CorteCaja';
 import CalculadoraUtilidad from './pages/CalculadoraDeUtilidad';
@@ -20,6 +20,7 @@ import EditarUsuario from './pages/EditarUsuario';
 import Cotizaciones from './pages/Cotizaciones';
 import NuevaCotizacion from './pages/NuevaCotizacion';
 import Categorias from './pages/Categorias';
+import Dashboard from './pages/Dashboard';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -31,19 +32,22 @@ function LayoutPrivado() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        
+
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
           <div className="max-w-7xl mx-auto">
             <Routes>
+              {/* Dashboard */}
+              <Route index element={<Dashboard />} />
+              <Route path="dashboard" element={<Dashboard />} />
               {/* Productos */}
               <Route path="productos" element={<Productos />} />
               <Route path="productos/nuevo" element={<AgregarProducto />} />
@@ -67,7 +71,7 @@ function LayoutPrivado() {
               <Route path="categorias" element={<Categorias />} />
               <Route path="corte-caja" element={<CorteCaja />} />
               <Route path="calculadora-utilidad" element={<CalculadoraUtilidad />} />
-              
+
               {/* Cotizaciones */}
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="cotizaciones/nueva" element={<NuevaCotizacion />} />
@@ -103,7 +107,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
-      
+
       <ToastContainer position="top-center" autoClose={2500} />
     </>
   );

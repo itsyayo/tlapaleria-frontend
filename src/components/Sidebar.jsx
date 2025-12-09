@@ -12,6 +12,10 @@ export default function Sidebar({ isOpen, onClose }) {
   if (!usuario) return null;
 
   const menuItems = [
+    { label: 'Inicio', path: '/dashboard', icon: Home, roles: ['admin', 'ventas', 'inventario'] },
+    
+    { type: 'divider' },
+
     { label: 'Venta POS', path: '/ventas/nueva', icon: ShoppingCart, roles: ['admin', 'ventas'] },
     { label: 'Historial', path: '/ventas/historial', icon: History, roles: ['admin', 'ventas'] },
     { label: 'Cotizaciones', path: '/cotizaciones', icon: FileText, roles: ['admin', 'ventas'] },

@@ -223,7 +223,8 @@ function HistorialVentas() {
                       <td className="p-4">
                           <span className={`px-2 py-1 rounded-md text-xs font-bold border 
                               ${v.forma_pago === 'Efectivo' ? 'bg-green-50 text-green-700 border-green-100' : 
-                                v.forma_pago === 'Tarjeta' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
+                                v.forma_pago === 'Débito' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
+                                v.forma_pago === 'Crédito' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
                                 'bg-blue-50 text-blue-700 border-blue-100'}`}>
                               {v.forma_pago}
                           </span>
