@@ -78,7 +78,7 @@ function Productos() {
       p.descripcion,
       p.ubicacion,
       p.nombre_categoria ?? '-',
-      p.cantidad_stock,
+      p.cantidad_stock < 0 ? 0 : p.cantidad_stock, 
       `$${Number(p.precio_venta ?? 0).toFixed(2)}`,
       p.nombre_proveedor ?? '-',
       p.clave_sat || ''
@@ -102,7 +102,7 @@ function Productos() {
       Descripción: p.descripcion,
       Ubicación: p.ubicacion,
       Categoría: p.nombre_categoria ?? '-',
-      Stock: p.cantidad_stock,
+      Stock: p.cantidad_stock < 0 ? 0 : p.cantidad_stock,
       'Precio Venta': Number(p.precio_venta ?? 0),
       Proveedor: p.nombre_proveedor ?? '-',
       'Clave SAT': p.clave_sat || ''
@@ -211,58 +211,63 @@ function Productos() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {productosFiltrados.map((p) => (
-            <div
-              key={p.id}
-              className="group bg-white border border-slate-200 rounded-xl p-3 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer flex flex-col h-full"
-              onClick={() => setProductoSeleccionado(p)}
-            >
-              {/* Imagen con lazy loading nativo */}
-              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-100 mb-3">
-                 {p.imagen ? (
-                   <img
-                     src={`${import.meta.env.VITE_API_URL}${p.imagen}`}
-                     alt={p.descripcion}
-                     loading="lazy"
-                     className="absolute inset-0 h-full w-full object-contain mix-blend-multiply p-2"
-                     onError={(e) => {
-                       e.target.style.display = 'none';
-                       e.target.nextSibling.style.display = 'grid';
-                     }}
-                   />
-                 ) : null}
-                 <div className={`absolute inset-0 bg-slate-100 place-items-center text-slate-300 ${p.imagen ? 'hidden' : 'grid'}`}>
-                    <span className="text-2xl">📷</span>
-                 </div>
-              </div>
+          {productosFiltrados.map((p) => {
+            const stockVisual = p.cantidad_stock < 0 ? 0 : p.cantidad_stock;
+            const esBajo = p.cantidad_stock <= (p.stock_minimo || 5) && p.cantidad_stock > 0;
+            const esCero = p.cantidad_stock <= 0;
 
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-800 line-clamp-2 mb-1" title={p.descripcion}>
-                  {p.descripcion}
-                </h3>
-                <div className="text-xs text-slate-500 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Código:</span> <span className="font-mono text-slate-700">{p.codigo}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Stock:</span> 
-                    <span className={`font-bold ${p.cantidad_stock <= (p.stock_minimo || 5) ? 'text-red-500' : 'text-green-600'}`}>
-                      {p.cantidad_stock}
-                    </span>
+            return (
+              <div
+                key={p.id}
+                className="group bg-white border border-slate-200 rounded-xl p-3 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer flex flex-col h-full"
+                onClick={() => setProductoSeleccionado(p)}
+              >
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-100 mb-3">
+                   {p.imagen ? (
+                     <img
+                       src={`${import.meta.env.VITE_API_URL}${p.imagen}`}
+                       alt={p.descripcion}
+                       loading="lazy"
+                       className="absolute inset-0 h-full w-full object-contain mix-blend-multiply p-2"
+                       onError={(e) => {
+                         e.target.style.display = 'none';
+                         e.target.nextSibling.style.display = 'grid';
+                       }}
+                     />
+                   ) : null}
+                   <div className={`absolute inset-0 bg-slate-100 place-items-center text-slate-300 ${p.imagen ? 'hidden' : 'grid'}`}>
+                      <span className="text-2xl">📷</span>
+                   </div>
+                </div>
+
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-800 line-clamp-2 mb-1" title={p.descripcion}>
+                    {p.descripcion}
+                  </h3>
+                  <div className="text-xs text-slate-500 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Código:</span> <span className="font-mono text-slate-700">{p.codigo}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Stock:</span> 
+                      <span className={`font-bold ${esCero || esBajo ? 'text-red-500' : 'text-green-600'}`}>
+                        {stockVisual}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-lg font-bold text-blue-700">
-                  ${Number(p.precio_venta).toFixed(2)}
-                </span>
-                <span className="text-[10px] uppercase px-2 py-1 bg-slate-100 rounded text-slate-500">
-                  {p.ubicacion || 'S/U'}
-                </span>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-lg font-bold text-blue-700">
+                    ${Number(p.precio_venta).toFixed(2)}
+                  </span>
+                  <span className="text-[10px] uppercase px-2 py-1 bg-slate-100 rounded text-slate-500">
+                    {p.ubicacion || 'S/U'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -271,7 +276,6 @@ function Productos() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setProductoSeleccionado(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col md:flex-row max-h-[90vh]" onClick={e => e.stopPropagation()}>
             
-            {/* Columna Imagen */}
             <div className="w-full md:w-1/2 bg-slate-100 p-6 flex items-center justify-center relative">
                {productoSeleccionado.imagen ? (
                   <img 
@@ -284,7 +288,6 @@ function Productos() {
                )}
             </div>
 
-            {/* Columna Info */}
             <div className="w-full md:w-1/2 p-6 overflow-y-auto">
               <h2 className="text-xl font-bold text-slate-800 mb-4">{productoSeleccionado.descripcion}</h2>
               
@@ -295,7 +298,11 @@ function Productos() {
                 <InfoRow label="Proveedor" value={productoSeleccionado.nombre_proveedor || '-'} />
                 <InfoRow label="Ubicación" value={productoSeleccionado.ubicacion || '-'} />
                 <div className="border-t my-2 pt-2">
-                   <InfoRow label="Stock Actual" value={productoSeleccionado.cantidad_stock} bold />
+                   <InfoRow 
+                     label="Stock Actual" 
+                     value={productoSeleccionado.cantidad_stock < 0 ? 0 : productoSeleccionado.cantidad_stock} 
+                     bold 
+                   />
                    <InfoRow label="Precio Venta" value={`$${Number(productoSeleccionado.precio_venta).toFixed(2)}`} bold color="text-blue-600" />
                     <InfoRow label="Precio Costo" value={`$${Number(productoSeleccionado.precio_compra).toFixed(2)}`} bold color="text-green-600" />
                 </div>

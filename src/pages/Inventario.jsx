@@ -50,6 +50,7 @@ function Inventario() {
       if (categoriasFiltro && p.nombre_categoria !== categoriasFiltro) return false;
 
       if (stockFiltro === 'BAJO' && Number(p.cantidad_stock) >= Number(p.stock_minimo)) return false;
+      
       if (stockFiltro === 'CERO' && Number(p.cantidad_stock) > 0) return false;
 
       if (busqueda) {
@@ -101,7 +102,7 @@ function Inventario() {
       p.codigo,
       p.descripcion.substring(0, 25),
       p.nombre_proveedor ?? '-',
-      p.cantidad_stock,
+      p.cantidad_stock < 0 ? 0 : p.cantidad_stock, 
       `$${Number(p.precio_compra).toFixed(2)}`,
       `$${Number(p.precio_venta).toFixed(2)}`
     ]);
@@ -279,10 +280,12 @@ function Inventario() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {productosFiltrados.map((p) => {
-              const stock = Number(p.cantidad_stock);
+              const stockReal = Number(p.cantidad_stock);
+              const stockVisual = stockReal < 0 ? 0 : stockReal;
+              
               const minimo = Number(p.stock_minimo);
-              const esBajo = stock < minimo && stock > 0;
-              const esCero = stock === 0;
+              const esBajo = stockReal < minimo && stockReal > 0;
+              const esCero = stockReal <= 0; 
 
               return (
                 <tr key={p.id} className="hover:bg-slate-50 transition">
@@ -299,7 +302,7 @@ function Inventario() {
                         esBajo ? 'bg-amber-100 text-amber-700' : 
                         'bg-slate-100 text-slate-700'}`}
                     >
-                      {stock}
+                      {stockVisual}
                     </span>
                   </td>
                   
