@@ -46,6 +46,18 @@ function TicketModal({ venta, productos, onClose }) {
     return `${letras.trim()} PESOS ${centavosStr}/100 M.N.`;
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
   const imprimirTicket = () => {
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -83,7 +95,7 @@ function TicketModal({ venta, productos, onClose }) {
     y += 2;
     autoTable(doc, {
       startY: y,
-      head: [['Cant', 'Desc', 'Importe']],
+      head: [['Qty', 'Desc', 'Importe']],
       body: productos.map(p => [
         p.cantidad,
         p.descripcion.substring(0, 40),  
@@ -103,6 +115,14 @@ function TicketModal({ venta, productos, onClose }) {
     y = doc.lastAutoTable.finalY + 4;
     
     const rightX = width - margin;
+
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+        
+    if (venta.descuento_total && Number(venta.descuento_total) > 0) {
+      doc.text(`DESCUENTO: $${Number(venta.descuento_total).toFixed(2)} MXN`, rightX, y, { align: 'right' });
+      y += 4;
+    }
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
