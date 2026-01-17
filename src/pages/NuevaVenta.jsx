@@ -97,8 +97,8 @@ export default function NuevaVenta() {
   };
 
   const actualizarCantidad = (id, valor) => {
-    const nuevaCantidad = parseInt(valor);
-    if (isNaN(nuevaCantidad) || nuevaCantidad < 1) return;
+    const nuevaCantidad = parseFloat(valor);
+    if (isNaN(nuevaCantidad) || nuevaCantidad <= 0) return;
     setTicket(prev => prev.map(p => p.id === id ? { ...p, cantidad: nuevaCantidad } : p));
   };
 
@@ -354,6 +354,8 @@ export default function NuevaVenta() {
                     <div className="flex items-center border rounded-lg bg-slate-50">
                       <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1)} className="px-2 py-1 hover:bg-slate-200 text-slate-600 font-bold">−</button>
                       <input
+                        type="number"
+                        step="any"
                         className="w-8 text-center bg-transparent text-sm font-bold outline-none"
                         value={item.cantidad}
                         onChange={(e) => actualizarCantidad(item.id, e.target.value)}
