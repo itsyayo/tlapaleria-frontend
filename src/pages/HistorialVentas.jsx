@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import API from '../services/api';
 import { toast } from 'react-toastify';
 import {
@@ -6,6 +6,10 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import TicketModal from '../components/TicketModal';
+import autoTable from 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 function HistorialVentas() {
   const [ventas, setVentas] = useState([]);
@@ -50,7 +54,6 @@ function HistorialVentas() {
       const res = await API.get(`/ventas/${venta.id}`);
       const venta_completa = {
         ...venta,
-        //descuento_total: venta.descuento_aplicado,
         monto_recibido: venta.monto_recibido || venta.total,
         cambio: (Number(venta.monto_recibido || venta.total) - Number(venta.total))
       };
@@ -92,6 +95,50 @@ function HistorialVentas() {
     }), { total: 0, count: 0 });
   }, [ventasFiltradas]);
 
+  const exportarExcel = useCallback(() => {
+    if (ventasFiltradas.length === 0) return toast.info('No hay datos para exportar');
+
+    const worksheetData = ventasFiltradas.map(venta => ({
+      'Folio': venta.id,
+      'Fecha / Hora': new Date(venta.fecha).toLocaleString('es-MX'),
+      'Vendedor': venta.nombre_vendedor,
+      'Método Pago': venta.forma_pago,
+      'Descuento': Number(venta.descuento_total).toFixed(2),
+      'Total': Number(venta.total).toFixed(2)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const file = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(file, `ventas_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }, [ventasFiltradas]);
+
+  const exportarPDF = useCallback(() => {
+    if (ventasFiltradas.length === 0) return toast.info('No hay datos para exportar');
+
+    const doc = new jsPDF();
+    const tableColumn = ["Folio", "Fecha / Hora", "Vendedor", "Método Pago", "Descuento", "Total"];
+    const tableRows = [];
+
+    ventasFiltradas.forEach(venta => {
+      const ventaData = [
+        `#${venta.id}`,
+        new Date(venta.fecha).toLocaleString('es-MX'),
+        venta.nombre_vendedor,
+        venta.forma_pago,
+        `$${Number(venta.descuento_total).toFixed(2)}`,
+        `$${Number(venta.total).toFixed(2)}`
+      ];
+      tableRows.push(ventaData);
+    });
+
+    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
+    doc.text("Historial de Ventas", 14, 15);
+    doc.save(`ventas_${new Date().toISOString().split('T')[0]}.pdf`);
+  }, [ventasFiltradas]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -116,12 +163,12 @@ function HistorialVentas() {
             <p className="text-xs text-slate-500 uppercase font-bold">Transacciones</p>
             <p className="text-xl font-bold text-slate-700">{resumen.count}</p>
           </div>
-          <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm min-w-[160px]">
+          {/* <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm min-w-[160px]">
             <p className="text-xs text-blue-600 uppercase font-bold">Total Ventas</p>
             <p className="text-2xl font-bold text-blue-700">
               ${resumen.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -187,6 +234,28 @@ function HistorialVentas() {
 
       {/* Tabla de Resultados */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden mb-4">
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          <h2 className="text-lg font-bold text-slate-700">Resultados de Búsqueda</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={exportarExcel}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-green-700 hover:border-green-300 hover:bg-green-50 transition-all text-sm font-medium shadow-sm"
+              title="Exportar a Excel"
+            >
+              <FileText size={16} className="text-green-600" /> 
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button
+              onClick={exportarPDF}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-red-700 hover:border-red-300 hover:bg-red-50 transition-all text-sm font-medium shadow-sm"
+              title="Exportar a PDF"
+            >
+              <FileText size={16} className="text-red-600" /> 
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 border-b text-xs uppercase font-semibold text-slate-500">
@@ -203,7 +272,7 @@ function HistorialVentas() {
             <tbody className="divide-y divide-slate-100">
               {ventasPaginadas.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-10 text-center text-slate-400">
+                  <td colSpan="7" className="p-10 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <Filter size={32} className="opacity-50" />
                       <p>No se encontraron ventas con estos filtros.</p>

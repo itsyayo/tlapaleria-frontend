@@ -48,7 +48,7 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-          <div className="p-4 bg-blue-50 text-blue-600 rounded-full">
+          {/*<div className="p-4 bg-blue-50 text-blue-600 rounded-full">
             <DollarSign size={24} />
           </div>
           <div>
@@ -73,6 +73,7 @@ export default function Dashboard() {
           <div className="p-4 bg-purple-50 text-purple-600 rounded-full">
             <ShoppingBag size={24} />
           </div>
+          */}
           <div>
             <p className="text-sm text-slate-500 font-medium">Transacciones</p>
             <h3 className="text-2xl font-bold text-slate-800">
