@@ -28,7 +28,12 @@ function HistorialVentas() {
   const [productosVenta, setProductosVenta] = useState([]);
   const [loadingTicket, setLoadingTicket] = useState(false);
 
+  const [esAdmin, setEsAdmin] = useState(false);
+
   useEffect(() => {
+    const usuarioActual = JSON.parse(localStorage.getItem('usuario') || '{}');
+    setEsAdmin(usuarioActual.rol === 'admin');
+    
     const fetchVentas = async () => {
       setLoading(true);
       try {
@@ -163,12 +168,14 @@ function HistorialVentas() {
             <p className="text-xs text-slate-500 uppercase font-bold">Transacciones</p>
             <p className="text-xl font-bold text-slate-700">{resumen.count}</p>
           </div>
-          {/* <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm min-w-[160px]">
-            <p className="text-xs text-blue-600 uppercase font-bold">Total Ventas</p>
-            <p className="text-2xl font-bold text-blue-700">
-              ${resumen.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-            </p>
-          </div> */}
+          {esAdmin && (
+            <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm min-w-[160px]">
+              <p className="text-xs text-blue-600 uppercase font-bold">Total Ventas</p>
+              <p className="text-2xl font-bold text-blue-700">
+                ${resumen.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
