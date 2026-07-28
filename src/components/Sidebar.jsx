@@ -28,8 +28,8 @@ export default function Sidebar({ isOpen, onClose }) {
     
     { type: 'divider' },
     
-    { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin'] },
-    { label: 'Utilidades', path: '/calculadora-utilidad', icon: Percent, roles: ['admin'] },
+    { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin', 'inventario'] },
+    { label: 'Utilidades', path: '/calculadora-utilidad', icon: Percent, roles: ['admin', 'inventario'] },
     { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['admin'] },
     { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin'] },
     { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin'] },
