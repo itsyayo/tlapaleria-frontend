@@ -48,6 +48,55 @@ export default function EntradasMercancia() {
   }, [navigate, usuario.rol]);
 
 
+  // Lista de sugerencias en tiempo real
+  const sugerencias = useMemo(() => {
+    if (!busqueda.trim()) return [];
+    const q = normalizar(busqueda);
+    return productos.filter(p => {
+      const texto = normalizar(`${p.codigo} ${p.codigo_barras || ''} ${p.descripcion}`);
+      return texto.includes(q);
+    }).slice(0, 10);
+  }, [busqueda, productos]);
+
+
+  // Función refactorizada para agregar directamente un producto
+  const agregarProducto = (prod) => {
+    setEntradas(prev => ({ ...prev, [prod.id]: (prev[prod.id] || 0) + 1 }));
+    setBusqueda('');
+    toast.success(`👍 Agregado: ${prod.descripcion}`);
+    inputRef.current?.focus();
+  };
+
+
+  // Manejador de teclado para búsqueda exacta (Escáner) o Enter
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const q = normalizar(busqueda);
+      if (!q) return;
+
+      // Buscar coincidencia exacta
+      const exacto = productos.find(p =>
+        normalizar(String(p.codigo)) === q ||
+        normalizar(String(p.codigo_barras || '')) === q
+      );
+
+      if (exacto) {
+        agregarProducto(exacto);
+      } else if (sugerencias.length === 1) {
+        // Si solo hay 1 sugerencia, la agregamos directo
+        agregarProducto(sugerencias[0]);
+      } else if (sugerencias.length > 1) {
+        // Si hay varias, pedimos seleccionar de la lista
+        toast.info(`Múltiples coincidencias. Por favor selecciona una de la lista.`);
+      } else {
+        toast.warning('❌ Producto no encontrado');
+        setBusqueda(''); 
+      }
+    }
+  };
+
+
   const setEntrada = (id, val) => {
     const n = parseFloat(val);
     setEntradas(prev => ({ 
@@ -86,44 +135,6 @@ export default function EntradasMercancia() {
     setPrecios({});
     inputRef.current?.focus();
   };
-
-  const agregarPorBusqueda = () => {
-    const q = normalizar(busqueda);
-    if (!q) return;
-
-    let prod = productos.find(p =>
-      normalizar(String(p.codigo)) === q ||
-      normalizar(String(p.codigo_barras || '')) === q
-    );
-
-    if (!prod) {
-      const matches = productos.filter(p => {
-        const texto = normalizar(`${p.codigo} ${p.codigo_barras || ''} ${p.descripcion}`);
-        return texto.includes(q);
-      });
-      
-      if (matches.length === 1) {
-        prod = matches[0];
-      } else if (matches.length > 1) {
-        toast.info(`🔍 ${matches.length} coincidencias. Sé más específico.`);
-        return;
-      }
-    }
-
-    if (!prod) {
-      toast.warning('❌ Producto no encontrado');
-      setBusqueda(''); 
-      return;
-    }
-
-    setEntradas(prev => ({ ...prev, [prod.id]: (prev[prod.id] || 0) + 1 }));
-    
-    setBusqueda('');
-    toast.success(`👍 Agregado: ${prod.descripcion}`);
-    
-    inputRef.current?.focus();
-  };
-
 
   const seleccion = useMemo(() => {
     const ids = Object.keys(entradas).map(Number).filter(Boolean);
@@ -229,8 +240,8 @@ export default function EntradasMercancia() {
         )}
       </div>
 
-      {/* Barra de Búsqueda */}
-      <div className="bg-white border rounded-xl p-4 mb-6 shadow-sm flex gap-3 sticky top-2 z-10">
+      {/* Barra de Búsqueda con Dropdown */}
+      <div className="bg-white border rounded-xl p-4 mb-6 shadow-sm flex gap-3 sticky top-2 z-10 relative">
         <div className="relative flex-1">
           <input
             ref={inputRef}
@@ -238,14 +249,44 @@ export default function EntradasMercancia() {
             placeholder="🔍 Escanea código de barras o busca por nombre..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && agregarPorBusqueda()}
+            onKeyDown={handleKeyDown}
             className="w-full rounded-xl border border-slate-300 pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-lg"
             autoFocus
           />
           <span className="absolute left-3 top-3.5 text-slate-400">📦</span>
+
+          {busqueda.length > 0 && sugerencias.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100">
+              {sugerencias.map(p => (
+                <div
+                  key={p.id}
+                  onClick={() => agregarProducto(p)}
+                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center transition"
+                >
+                   <div>
+                     <p className="font-bold text-slate-800 text-sm">{p.descripcion}</p>
+                     <p className="text-xs text-slate-500 font-mono mt-1">
+                       {p.codigo} {p.codigo_barras ? `| ${p.codigo_barras}` : ''}
+                     </p>
+                   </div>
+                   <div className="text-right">
+                     <span className="text-xs font-medium text-slate-500 block mb-1">Stock Actual</span>
+                     <span className={`text-sm font-bold ${p.cantidad_stock <= 0 ? 'text-rose-500' : 'text-blue-600'}`}>
+                       {p.cantidad_stock}
+                     </span>
+                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {busqueda.length > 0 && sugerencias.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-4 text-center text-slate-500 text-sm">
+              No se encontraron coincidencias para "{busqueda}"
+            </div>
+          )}
         </div>
         <button
-          onClick={agregarPorBusqueda}
+          onClick={() => handleKeyDown({ key: 'Enter', preventDefault: () => {} })}
           className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-sm"
         >
           Agregar

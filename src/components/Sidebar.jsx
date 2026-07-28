@@ -16,14 +16,14 @@ export default function Sidebar({ isOpen, onClose }) {
     
     { type: 'divider' },
 
-    { label: 'Venta POS', path: '/ventas/nueva', icon: ShoppingCart, roles: ['admin', 'ventas'] },
+    { label: 'Venta POS', path: '/ventas/nueva', icon: ShoppingCart, roles: ['admin', 'ventas', 'inventario'] },
     { label: 'Historial', path: '/ventas/historial', icon: History, roles: ['admin', 'ventas'] },
-    { label: 'Cotizaciones', path: '/cotizaciones', icon: FileText, roles: ['admin', 'ventas'] },
+    { label: 'Cotizaciones', path: '/cotizaciones', icon: FileText, roles: ['admin', 'ventas', 'inventario'] },
     
     { type: 'divider' },
     
     { label: 'Productos', path: '/productos', icon: Package, roles: ['admin', 'ventas', 'inventario'] },
-    { label: 'Inventario', path: '/inventario', icon: ChartPie, roles: ['admin', 'inventario'] },
+    { label: 'Inventario', path: '/inventario', icon: ChartPie, roles: ['admin'] },
     { label: 'Recepción', path: '/inventario/entradas', icon: Archive, roles: ['admin', 'inventario'] },
     
     { type: 'divider' },
@@ -31,8 +31,8 @@ export default function Sidebar({ isOpen, onClose }) {
     { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin'] },
     { label: 'Utilidades', path: '/calculadora-utilidad', icon: Percent, roles: ['admin'] },
     { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['admin'] },
-    { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin', 'inventario'] },
-    { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin', 'inventario'] },
+    { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin'] },
+    { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin'] },
   ];
 
   const linksVisibles = menuItems.filter(item => 
