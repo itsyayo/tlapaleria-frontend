@@ -24,7 +24,7 @@ function CorteCaja() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (usuarioActual.rol !== 'admin') {
+    if (usuarioActual.rol !== 'admin' && usuarioActual.rol !== 'inventario') {
       navigate('/denegado');
       return;
     }
