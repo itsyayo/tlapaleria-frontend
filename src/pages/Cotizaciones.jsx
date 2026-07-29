@@ -146,7 +146,7 @@ export default function Cotizaciones() {
                     </Link>
                     
                     {/* Solo admin o ventas puede borrar */}
-                    {(usuario.rol === 'admin' || usuario.rol === 'ventas') && (
+                    {(usuario.rol === 'admin') && (
                       <button
                         className="p-2 rounded-lg border border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition"
                         onClick={() => eliminar(c.id)}

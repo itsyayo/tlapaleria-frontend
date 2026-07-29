@@ -40,7 +40,7 @@ function EditarProducto() {
   
   // Validación de permisos
   useEffect(() => {
-    if (usuario && usuario.rol !== 'admin') {
+    if (usuario && usuario.rol !== 'admin' && usuario.rol !== 'inventario') {
       toast.error('Acceso denegado');
       navigate('/denegado');
     }
@@ -83,7 +83,7 @@ function EditarProducto() {
       }
     };
 
-    if (usuario?.rol === 'admin') {
+    if (usuario?.rol === 'admin' || usuario?.rol === 'inventario') {
        fetchData();
     }
   }, [id]);

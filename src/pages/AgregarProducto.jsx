@@ -30,7 +30,7 @@ function AgregarProducto() {
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
-    if (usuario.rol !== 'admin') {
+    if (usuario.rol !== 'admin' && usuario.rol !== 'inventario') {
       toast.error('Acceso denegado');
       navigate('/denegado');
       return;

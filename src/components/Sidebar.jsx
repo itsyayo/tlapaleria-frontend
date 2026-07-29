@@ -31,8 +31,8 @@ export default function Sidebar({ isOpen, onClose }) {
     { label: 'Corte Caja', path: '/corte-caja', icon: BarChart, roles: ['admin', 'inventario'] },
     { label: 'Utilidades', path: '/calculadora-utilidad', icon: Percent, roles: ['admin', 'inventario'] },
     { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['admin'] },
-    { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin'] },
-    { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin'] },
+    { label: 'Proveedores', path: '/proveedores', icon: Truck, roles: ['admin', 'inventario'] },
+    { label: 'Categorías', path: '/categorias', icon: Tag, roles: ['admin', 'inventario'] },
   ];
 
   const linksVisibles = menuItems.filter(item => 

@@ -194,14 +194,14 @@ function Productos() {
           <span>📊</span> Excel
         </button>
         
-        {usuario?.rol === 'admin' && (
+        {usuario?.rol === 'admin' || usuario?.rol === 'inventario'  ? (
           <Link 
             to="/productos/nuevo"
             className="ml-auto px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition flex items-center gap-2"
           >
              <span>+</span> Nuevo Producto
           </Link>
-        )}
+        ) : null} 
       </div>
 
       {/* Grid de productos */}
@@ -308,7 +308,7 @@ function Productos() {
                 </div>
               </div>
 
-              {usuario?.rol === 'admin' && (
+              {usuario?.rol === 'admin' || usuario?.rol === 'inventario'  ? (
                 <div className="mt-6 flex gap-3">
                   <Link
                     to={`/productos/editar/${productoSeleccionado.id}`}
@@ -323,7 +323,7 @@ function Productos() {
                     Eliminar
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

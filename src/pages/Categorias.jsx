@@ -14,7 +14,7 @@ function Categorias() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (usuario.rol !== 'admin') {
+    if (usuario.rol !== 'admin' && usuario.rol !== 'inventario') {
       toast.error('Acceso denegado');
       navigate('/denegado');
       return;
