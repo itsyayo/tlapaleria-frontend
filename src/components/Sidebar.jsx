@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { type: 'divider' },
 
     { label: 'Venta POS', path: '/ventas/nueva', icon: ShoppingCart, roles: ['admin', 'ventas', 'inventario'] },
-    { label: 'Historial', path: '/ventas/historial', icon: History, roles: ['admin', 'ventas'] },
+    { label: 'Historial', path: '/ventas/historial', icon: History, roles: ['admin', 'ventas', 'inventario'] },
     { label: 'Cotizaciones', path: '/cotizaciones', icon: FileText, roles: ['admin', 'ventas', 'inventario'] },
     
     { type: 'divider' },
