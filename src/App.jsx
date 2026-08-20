@@ -20,7 +20,9 @@ import EditarUsuario from './pages/EditarUsuario';
 import Cotizaciones from './pages/Cotizaciones';
 import NuevaCotizacion from './pages/NuevaCotizacion';
 import Categorias from './pages/Categorias';
+{/*import Clientes from './pages/Clientes';*/}
 import Dashboard from './pages/Dashboard';
+import CotizacionesEspeciales from './pages/CotizacionesEspeciales';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -67,6 +69,7 @@ function LayoutPrivado() {
               <Route path="usuarios/editar/:id" element={<EditarUsuario />} />
 
               {/* Otros */}
+              {/*<Route path="clientes" element={<Clientes />} />*/}
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="corte-caja" element={<CorteCaja />} />
@@ -75,7 +78,9 @@ function LayoutPrivado() {
               {/* Cotizaciones */}
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="cotizaciones/nueva" element={<NuevaCotizacion />} />
-              <Route path="cotizaciones/editar/:id" element={<NuevaCotizacion />} />
+              {/* <Route path="cotizaciones/editar/:id" element={<NuevaCotizacion />} />*/}
+              <Route path="/cotizaciones/editar/:id" element={<CotizacionesEspeciales />} />
+              <Route path="cotizacionesEspeciales" element={<CotizacionesEspeciales />} />
 
               {/* Fallback */}
               <Route path="*" element={<AccesoDenegado />} />
