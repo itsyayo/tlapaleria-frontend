@@ -33,7 +33,7 @@ export default function CotizacionesEspeciales() {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (usuario.rol !== 'admin' && usuario.rol !== 'ventas') {
+    if (usuario.rol !== 'admin' && usuario.rol !== 'ventas' && usuario.rol !== 'inventario') {
       toast.error('No tienes permisos para cotizar');
       navigate('/denegado');
       return;
@@ -99,7 +99,7 @@ export default function CotizacionesEspeciales() {
     return productos.filter(p => {
       const texto = normalizar(`${p.codigo} ${p.codigo_barras || ''} ${p.descripcion}`);
       return texto.includes(q);
-    }).slice(0, 10);
+    }).slice(0, 20);
   }, [busqueda, productos]);
 
   const calcularPrecios = (precioCompra, precioVenta) => {
