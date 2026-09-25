@@ -18,6 +18,8 @@ API.interceptors.request.use(
       console.warn('Token corrupto interceptado. Limpiando sesión...');
       localStorage.removeItem('token');
       localStorage.removeItem('usuario');
+
+      window.location.href = '/';
     }
 
     return config;
