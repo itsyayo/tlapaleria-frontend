@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { type: 'divider' },
     
     { label: 'Productos', path: '/productos', icon: Package, roles: ['admin', 'ventas', 'inventario'] },
-    { label: 'Inventario', path: '/inventario', icon: ChartPie, roles: ['admin'] },
+    { label: 'Inventario', path: '/inventario', icon: ChartPie, roles: ['admin', 'inventario', 'ventas'] },
     { label: 'Recepción', path: '/inventario/entradas', icon: Archive, roles: ['admin', 'inventario'] },
     
     { type: 'divider' },
