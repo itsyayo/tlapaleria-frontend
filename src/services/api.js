@@ -9,9 +9,17 @@ const API = axios.create({
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+
+    const isValidFormat = token && typeof token === 'string' && token.split('.').length === 3;
+
+    if (isValidFormat) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      console.warn('Token corrupto interceptado. Limpiando sesión...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -24,10 +32,10 @@ API.interceptors.response.use(
       const { status, data } = error.response;
 
       if (status === 401) {
-        toast.error('Sesión expirada. Por favor inicia sesión de nuevo.');
+        toast.error('Sesión expirada o inválida. Por favor inicia sesión de nuevo.');
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
-        window.location.href = '/'; 
+        window.location.href = '/';
         return Promise.reject(error);
       }
 
@@ -35,9 +43,10 @@ API.interceptors.response.use(
         toast.warning('No tienes permisos para realizar esta acción.');
         return Promise.reject(error);
       }
-      if (data.error) {
+      
+      if (data && data.error) {
         console.warn('API Error:', data.error);
-        return Promise.reject(new Error(data.error)); 
+        return Promise.reject(new Error(data.error));
       }
     } else if (error.request) {
       toast.error('Error de conexión con el servidor.');
