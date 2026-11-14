@@ -4,7 +4,7 @@ import API from '../services/api';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Search, Trash2, User, UserCog, AlertCircle, TrendingUp, Tags, Save } from 'lucide-react';
+import { Search, Trash2, User, UserCog, AlertCircle, TrendingUp, Tags, Save, FileText } from 'lucide-react';
 
 function normalizar(texto = '') {
   return String(texto)
@@ -27,6 +27,7 @@ export default function CotizacionesEspeciales() {
   const [cotizacion, setCotizacion] = useState([]); 
   const [busqueda, setBusqueda] = useState('');
   const [nombreCliente, setNombreCliente] = useState('');
+  const [notas, setNotas] = useState('');
   const [loadingInit, setLoadingInit] = useState(true);
   const [guardando, setGuardando] = useState(false);
   
@@ -62,7 +63,8 @@ export default function CotizacionesEspeciales() {
         const res = await API.get(`/cotizaciones/${cotizacionIdParam}`);
         const data = res.data;
 
-        setNombreCliente(data.cliente || '');
+        setNombreCliente(data.cliente || data.cliente_nombre || '');
+        setNotas(data.notas || '');
 
         const productosProcesados = (data.productos || []).map(p => {
           const precioCompra = Number(p.precio_compra || 0);
@@ -91,7 +93,6 @@ export default function CotizacionesEspeciales() {
 
     cargarCotizacionExistente();
   }, [cotizacionIdParam, isEditing]);
-
 
   const sugerencias = useMemo(() => {
     if (!busqueda.trim()) return [];
@@ -195,6 +196,7 @@ export default function CotizacionesEspeciales() {
     try {
       const payload = {
         cliente_nombre: nombreCliente || 'Público General',
+        notas: notas.trim(),
         total: detalleFinanciero.totalFinal,
         descuento_total: detalleFinanciero.totalDescuento,
         subtotal: detalleFinanciero.subtotalBase,
@@ -232,6 +234,7 @@ export default function CotizacionesEspeciales() {
       if (!isEditing) {
         setCotizacion([]);
         setNombreCliente('');
+        setNotas('');
         setBusqueda('');
         inputRef.current?.focus();
       } else {
@@ -298,7 +301,7 @@ export default function CotizacionesEspeciales() {
     const subtotalNeto = detalleFinanciero.totalFinal / 1.16; 
     const iva16 = detalleFinanciero.totalFinal - subtotalNeto; 
 
-    // --- DESGLOSE LADO DERECHO (Estilo Ticket/Factura) ---
+    // --- DESGLOSE LADO DERECHO ---
     const rightX = doc.internal.pageSize.getWidth() - 14; 
     const labelX = rightX - 32; 
     let currentY = finalY;
@@ -307,55 +310,61 @@ export default function CotizacionesEspeciales() {
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
 
-    // Subtotal Base
     doc.text('Subtotal Base:', labelX, currentY, { align: 'right' });
     doc.text(formatear(detalleFinanciero.subtotalBase), rightX, currentY, { align: 'right' });
     currentY += 5;
 
-    // Descuentos
     if (detalleFinanciero.totalDescuento > 0) {
       doc.text('Descuento:', labelX, currentY, { align: 'right' });
       doc.text(`-${formatear(detalleFinanciero.totalDescuento)}`, rightX, currentY, { align: 'right' });
       currentY += 5;
     }
 
-    // Subtotal Neto
     doc.text('Subtotal Neto:', labelX, currentY, { align: 'right' });
     doc.text(formatear(subtotalNeto), rightX, currentY, { align: 'right' });
     currentY += 5;
 
-    // IVA
     doc.text('IVA (16%):', labelX, currentY, { align: 'right' });
     doc.text(formatear(iva16), rightX, currentY, { align: 'right' });
     currentY += 5;
 
-    // Línea separadora
     doc.setDrawColor(200, 200, 200);
     doc.line(labelX - 10, currentY - 3, rightX, currentY - 3);
 
-    // Total final
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL:', labelX, currentY + 4, { align: 'right' });
     doc.text(formatear(detalleFinanciero.totalFinal), rightX, currentY + 4, { align: 'right' });
 
-
-    // --- MENSAJES LADO IZQUIERDO ---
+    // --- MENSAJES Y NOTAS LADO IZQUIERDO ---
+    let leftY = finalY;
     if (esInterno) {
-      let leftY = finalY;
       doc.setFontSize(10); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
       doc.text(`Costo Total Inventario: ${formatear(detalleFinanciero.costoTotal)}`, 14, leftY);
       
       doc.setTextColor(5, 150, 105);
       doc.setFont('helvetica', 'bold');
-      doc.text(`UTILIDAD NETA PROYECTADA: ${formatear(detalleFinanciero.utilidadBruta)}`, 14, leftY + 8);
+      doc.text(`UTILIDAD NETA PROYECTADA: ${formatear(detalleFinanciero.utilidadBruta)}`, 14, leftY + 7);
+      leftY += 15;
     } else {
-      let leftY = finalY;
-      
       doc.setTextColor(0, 0, 0); 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text('Precios sujetos a cambios sin previo aviso. Vigencia: 15 días.', 14, leftY + 8);
+      doc.text('Precios sujetos a cambios sin previo aviso. Vigencia: 15 días.', 14, leftY + 4);
+      leftY += 12;
+    }
+
+    if (notas && notas.trim()) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Notas / Observaciones:', 14, leftY);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const maxWidth = esInterno ? 180 : 110;
+      const lineasNotas = doc.splitTextToSize(notas.trim(), maxWidth);
+      doc.text(lineasNotas, 14, leftY + 5);
     }
 
     window.open(URL.createObjectURL(doc.output('blob')), '_blank');
@@ -513,6 +522,21 @@ export default function CotizacionesEspeciales() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* SECCIÓN DE NOTAS / OBSERVACIONES */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
+        <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+          <FileText size={16} className="text-blue-600" />
+          Notas u Observaciones
+        </label>
+        <textarea
+          rows="2"
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
+          placeholder="Ej. Entrega a domicilio sin costo, material sobre pedido (3 días hábiles), condiciones de pago..."
+          className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 focus:bg-white transition"
+        />
       </div>
 
       {cotizacion.length > 0 && (
